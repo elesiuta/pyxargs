@@ -109,7 +109,7 @@ def executeCommand(command_dict):
         return output
 
 if __name__ == "__main__":
-    readme = ("build and execute command lines from file paths, "
+    readme = ("build and execute command lines from standard input or file paths, "
               "a partial implementation of xargs in python. "
               "note: argparse does not escape spaces in arguments, use quotes. ")
     examples = """
@@ -130,7 +130,7 @@ if __name__ == "__main__":
     parser.add_argument("--delimiter", type=str, metavar="delim",
                         help="input items are terminated by the specified character instead, --stdin is implied and not necessary")
     parser.add_argument("-m", type=str, default="file", metavar="mode", choices=['file', 'path', 'abspath', 'dir'],
-                        help="file = pass filenames while walking through each subdirectory (default), path = pass full filepaths relative to the base directory, abspath = pass full filepaths relative to root, dir = pass directories only")
+                        help="file = pass filenames while walking through each subdirectory (default), path = pass full file paths relative to the base directory, abspath = pass full file paths relative to root, dir = pass directories only")
     parser.add_argument("-r", type=str, default=".", metavar="regex",
                         help="only pass inputs matching regex")
     parser.add_argument("-o", action="store_true",
@@ -142,13 +142,17 @@ if __name__ == "__main__":
     parser.add_argument("--resub", nargs=3, type=str, metavar=("pattern", "repl", "replace-str"),
                         help="replace occurrences of replace-str in the initial-arguments with re.sub(patten, repl, input)")
     parser.add_argument("--py", action="store_true",
-                        help="executes cmd as python code using exec(), takes priority over --pyev flag")
+                        help="executes cmd as python code using exec(), takes priority over --pyev flag, beware of side effects")
     parser.add_argument("--pyev", action="store_true",
                         help="evaluates cmd as python expression using eval(), does nothing if run with --py flag")
     parser.add_argument("--imprt", nargs="*", type=str, default=[], metavar=("library"),
-                        help="runs exec(\"import \" + library) on each library")
+                        help="runs exec(\"import \" + library) on each library, beware of side effects")
     parser.add_argument("--imprtstar", nargs="*", type=str, default=[], metavar=("library"),
-                        help="runs exec(\"from \" + library + \" import *\") on each library")
+                        help="runs exec(\"from \" + library + \" import *\") on each library, beware of side effects")
+    parser.add_argument("--pre", nargs="*", type=str, default=[], metavar=("code"),
+                        help="runs exec(code) for each line of code before execution, beware of side effects")
+    parser.add_argument("--post", nargs="*", type=str, default=[], metavar=("code"),
+                        help="runs exec(code) for each line of code after execution, beware of side effects")
     parser.add_argument("-p", action="store", type=int, default=1, metavar="num",
                         help="number of processes (todo)")
     parser.add_argument("-n", "--norun", action="store_true",
@@ -167,11 +171,6 @@ if __name__ == "__main__":
         start_dir = os.getcwd()
         command_dicts = []
         output = []
-        # imports
-        for i in args.imprt:
-            exec("import " + i)
-        for i in args.imprtstar:
-            exec("from " + i + " import *")
         # use standard input or files from directory
         if (args.stdin or args.null or args.delimiter != None) and args.m == "file" and not args.f:
             # set seperator
@@ -202,9 +201,19 @@ if __name__ == "__main__":
         else:
             colourPrint("Invalid argument combination: %s" %(args), "FAIL")
             sys.exit(0)
+        # pre execution tasks
+        for i in args.imprt:
+            exec("import " + i)
+        for i in args.imprtstar:
+            exec("from " + i + " import *")
+        for line in args.pre:
+            exec(line)
         # execute commands
         for command_dict in command_dicts:
             output.append(["COMMAND(S):"] + command_dict["cmd"] + ["OUTPUT(S):"] + executeCommand(command_dict))
+        # post execution tasks
+        for line in args.post:
+            exec(line)
         # write csv
         if args.csv:
             file_name = "pyxargs" + datetime.datetime.now().strftime("%y%m%d-%H%M%S") + ".csv"
