@@ -5,6 +5,12 @@ import sys
 import argparse
 import datetime
 
+class ArgparseCustomFormatter(argparse.HelpFormatter):
+    def _split_lines(self, text, width):
+        if text[:2] == 'F!':
+            return text.splitlines()[1:]
+        return argparse.HelpFormatter._split_lines(self, text, width)
+
 def replaceSurrogates(string):
     return string.encode('utf16', 'surrogatepass').decode('utf16', 'replace')
 
@@ -49,7 +55,7 @@ def buildCommand(dir_name, file_name, arg_input, args):
         relpath = os.path.relpath(relpath, args.d)
         if (re.search(args.r, relpath) != None) == args.o:
             return None
-    elif file_name != None:
+    elif args.f and file_name != None:
         if (re.search(args.r, file_name) != None) == args.o:
             return None
     else:
@@ -72,7 +78,7 @@ def executeCommand(command_dict):
     dir_name = command_dict["dir"]
     cmds = command_dict["cmd"]
     # mode
-    if args.m == "file":
+    if args.m in ["file", "stdin"]:
         os.chdir(dir_name)
     # no run
     if args.norun:
@@ -118,21 +124,30 @@ if __name__ == "__main__":
     find ./ -name "*" -type f -print0 | python pyxargs.py -0 "echo {}"
     python pyxargs.py -m path "echo ./{}"
     """
-    parser = argparse.ArgumentParser(description=readme)
+    parser = argparse.ArgumentParser(description=readme, formatter_class=ArgparseCustomFormatter)
     parser.add_argument("command", action="store", type=str, metavar="command-string", nargs="*",
                         help="command-string = \"command [initial-arguments]\"")
     parser.add_argument("-d", type=str, default=os.getcwd(), metavar="base-directory",
-                        help="base directory containing files to build commands from, default: os.getcwd()")
-    parser.add_argument("--stdin", action="store_true",
-                        help="build commands from standard input instead of file paths, -d becomes execution directory, -m and -f are incompatible")
+                        help="default: os.getcwd()")
+    parser.add_argument("-m", type=str, default="file", metavar="mode", choices=['file', 'path', 'abspath', 'dir', 'stdin'],
+                        help="F!\n"
+                             "options are:\n"
+                             "file    = build commands from filenames and execute in\n"
+                             "          each subdirectory respectively (default)\n"
+                             "path    = build commands from file paths relative to\n"
+                             "          the base directory and execute in the base\n"
+                             "          directory\n"
+                             "abspath = build commands from file paths relative to\n"
+                             "          root and execute in the base directory\n"
+                             "dir     = pass directories only\n"
+                             "stdin   = build commands from standard input and\n"
+                             "          execute in the base-directory")
     parser.add_argument("-0", "--null", action="store_true",
-                        help="input items are terminated by a null character instead of by whitespace, --stdin is implied and not necessary")
+                        help="input items are terminated by a null character instead of by whitespace, automatically sets mode to \"stdin\"")
     parser.add_argument("--delimiter", type=str, metavar="delim",
-                        help="input items are terminated by the specified character instead, --stdin is implied and not necessary")
-    parser.add_argument("-m", type=str, default="file", metavar="mode", choices=['file', 'path', 'abspath', 'dir'],
-                        help="file = pass filenames while walking through each subdirectory (default), path = pass full file paths relative to the base directory, abspath = pass full file paths relative to root, dir = pass directories only")
+                        help="input items are terminated by the specified character instead, automatically sets mode to \"stdin\"")
     parser.add_argument("-r", type=str, default=".", metavar="regex",
-                        help="only pass inputs matching regex")
+                        help="only build commands from inputs matching regex")
     parser.add_argument("-o", action="store_true",
                         help="omit inputs matching regex instead")
     parser.add_argument("-f", action="store_true",
@@ -172,7 +187,8 @@ if __name__ == "__main__":
         command_dicts = []
         output = []
         # use standard input or files from directory
-        if (args.stdin or args.null or args.delimiter != None) and args.m == "file" and not args.f:
+        if args.m == "stdin" or args.null or args.delimiter != None:
+            args.m = "stdin"
             # set seperator
             seperator = None
             if args.null:
@@ -185,7 +201,7 @@ if __name__ == "__main__":
                 command = buildCommand(None, None, arg, args)
                 if command != None:
                     command_dicts.append({"args": args, "dir": args.d, "cmd": command})
-        elif not args.stdin:
+        elif args.m in ['file', 'path', 'abspath', 'dir']:
             # silly walk
             for dirName, subdirList, fileList in os.walk(root_dir):
                 subdirList.sort()
@@ -193,7 +209,7 @@ if __name__ == "__main__":
                     command = buildCommand(dirName, None, None, args)
                     if command != None:
                         command_dicts.append({"args": args, "dir": dirName, "cmd": command})
-                elif args.m == "file" or args.m == "path" or args.m == "abspath": 
+                elif args.m in ["file", "path", "abspath"]:
                     for f in sorted(fileList):
                         command = buildCommand(dirName, f, None, args)
                         if command != None:

@@ -1,8 +1,8 @@
 # pyxargs
 
 ```
-usage: pyxargs.py [-h] [-d base-directory] [--stdin] [-0] [--delimiter delim]
-                  [-m mode] [-r regex] [-o] [-f] [-I replace-str]
+usage: pyxargs.py [-h] [-d base-directory] [-m mode] [-0] [--delimiter delim]
+                  [-r regex] [-o] [-f] [-I replace-str]
                   [--resub pattern repl replace-str] [--py] [--pyev]
                   [--imprt [library [library ...]]]
                   [--imprtstar [library [library ...]]]
@@ -19,21 +19,23 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
-  -d base-directory     base directory containing files to build commands
-                        from, default: os.getcwd()
-  --stdin               build commands from standard input instead of file
-                        paths, -d becomes execution directory, -m and -f are
-                        incompatible
+  -d base-directory     default: os.getcwd()
+  -m mode               options are:
+                        file    = build commands from filenames and execute in
+                                  each subdirectory respectively (default)
+                        path    = build commands from file paths relative to
+                                  the base directory and execute in the base
+                                  directory
+                        abspath = build commands from file paths relative to
+                                  root and execute in the base directory
+                        dir     = pass directories only
+                        stdin   = build commands from standard input and
+                                  execute in the base-directory
   -0, --null            input items are terminated by a null character instead
-                        of by whitespace, --stdin is implied and not necessary
+                        of by whitespace, automatically sets mode to "stdin"
   --delimiter delim     input items are terminated by the specified character
-                        instead, --stdin is implied and not necessary
-  -m mode               file = pass filenames while walking through each
-                        subdirectory (default), path = pass full file paths
-                        relative to the base directory, abspath = pass full
-                        file paths relative to root, dir = pass directories
-                        only
-  -r regex              only pass inputs matching regex
+                        instead, automatically sets mode to "stdin"
+  -r regex              only build commands from inputs matching regex
   -o                    omit inputs matching regex instead
   -f                    only match regex to filenames
   -I replace-str        replace occurrences of replace-str in the initial-
