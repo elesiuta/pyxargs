@@ -100,13 +100,13 @@ def executeCommand(command_dict):
                 try:
                     exec(cmd, globals())
                     output.append("EXEC SUCCESS")
-                except:
-                    output.append("EXEC ERROR")
+                except Exception as e:
+                    output.append("EXEC ERROR: " + str(e))
             elif args.pyev:
                 try:
                     output.append(eval(cmd))
-                except:
-                    output.append("EVAL ERROR")
+                except Exception as e:
+                    output.append("EVAL ERROR: " + str(e))
             elif args.csv:
                 output.append(os.popen(cmd).read())
             else:
