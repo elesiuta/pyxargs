@@ -50,7 +50,7 @@ def buildCommand(dir_name, file_name, arg_input, args):
         elif args.m == "abspath":
             arg_input = os.path.join(dir_name, file_name)
     # check re match
-    if not args.f and dirName != None and file_name != None:
+    if not args.f and dir_name != None and file_name != None:
         relpath = os.path.join(dir_name, file_name)
         relpath = os.path.relpath(relpath, args.d)
         if (re.search(args.r, relpath) != None) == args.o:
@@ -98,7 +98,7 @@ def executeCommand(command_dict):
                 colourPrint(cmd,"OKGREEN")
             if args.py:
                 try:
-                    exec(cmd)
+                    exec(cmd, globals())
                     output.append("EXEC SUCCESS")
                 except:
                     output.append("EXEC ERROR")
@@ -145,7 +145,7 @@ if __name__ == "__main__":
     parser.add_argument("-0", "--null", action="store_true",
                         help="input items are terminated by a null character instead of by whitespace, automatically sets mode to \"stdin\"")
     parser.add_argument("--delimiter", type=str, metavar="delim",
-                        help="input items are terminated by the specified character instead, automatically sets mode to \"stdin\"")
+                        help="input items are terminated by the specified character instead of whitespace and trailing whitespace is removed, automatically sets mode to \"stdin\"")
     parser.add_argument("-r", type=str, default=".", metavar="regex",
                         help="only build commands from inputs matching regex")
     parser.add_argument("-o", action="store_true",
@@ -196,9 +196,12 @@ if __name__ == "__main__":
             elif args.delimiter != None:
                 seperator = args.delimiter
             # read input
-            stdin = sys.stdin.read()
-            for arg in stdin.split(seperator):
-                command = buildCommand(None, None, arg, args)
+            if args.delimiter != None:
+                stdin = sys.stdin.read().rstrip()
+            else:
+                stdin = sys.stdin.read()
+            for arg_input in stdin.split(seperator):
+                command = buildCommand(None, None, arg_input, args)
                 if command != None:
                     command_dicts.append({"args": args, "dir": args.d, "cmd": command})
         elif args.m in ['file', 'path', 'abspath', 'dir']:

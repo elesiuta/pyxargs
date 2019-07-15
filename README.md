@@ -34,7 +34,8 @@ optional arguments:
   -0, --null            input items are terminated by a null character instead
                         of by whitespace, automatically sets mode to "stdin"
   --delimiter delim     input items are terminated by the specified character
-                        instead, automatically sets mode to "stdin"
+                        instead of whitespace and trailing whitespace is
+                        removed, automatically sets mode to "stdin"
   -r regex              only build commands from inputs matching regex
   -o                    omit inputs matching regex instead
   -f                    only match regex to filenames
