@@ -111,7 +111,10 @@ def executeCommand(command_dict):
                 except Exception as e:
                     output.append("EVAL ERROR: " + str(e))
             elif args.csv:
-                output.append(os.popen(cmd).read())
+                with os.popen(cmd) as result:
+                    result = result.read()
+                    sys.stdout.write(result)
+                    output.append(result)
             else:
                 os.system(cmd)
                 output.append("os.system")
@@ -126,6 +129,7 @@ if __name__ == "__main__":
     find ./ -name "*" -type f -print0 | xargs -0 -I{} echo {}
     find ./ -name "*" -type f -print0 | python pyxargs.py -0 echo {}
     python pyxargs.py -m path echo ./{}
+    python pyxargs.py -m path --py "print('./{}')"
     """
     parser = argparse.ArgumentParser(description=readme, formatter_class=ArgparseCustomFormatter)
     parser.add_argument("command", action="store", type=str, metavar="command-part", nargs="*",
