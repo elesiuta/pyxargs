@@ -201,7 +201,7 @@ if __name__ == "__main__":
         colourPrint("Invalid argument(s): %s" %(args), "FAIL")
         sys.exit(0)
     if len(args.command) >= 1:
-        root_dir = args.d
+        base_dir = args.d
         start_dir = os.getcwd()
         command_dicts = []
         output = []
@@ -222,20 +222,20 @@ if __name__ == "__main__":
             for arg_input in stdin.split(seperator):
                 command = buildCommand(None, None, arg_input, args)
                 if command != None:
-                    command_dicts.append({"args": args, "dir": args.d, "cmd": command})
+                    command_dicts.append({"args": args, "dir": base_dir, "cmd": command})
         elif args.m in ['file', 'path', 'abspath', 'dir']:
             # silly walk
-            for dirName, subdirList, fileList in os.walk(root_dir):
-                subdirList.sort()
+            for dir_path, subdir_list, file_list in os.walk(base_dir):
+                subdir_list.sort()
                 if args.m == "dir":
-                    command = buildCommand(dirName, None, None, args)
+                    command = buildCommand(dir_path, None, None, args)
                     if command != None:
-                        command_dicts.append({"args": args, "dir": dirName, "cmd": command})
+                        command_dicts.append({"args": args, "dir": dir_path, "cmd": command})
                 elif args.m in ["file", "path", "abspath"]:
-                    for f in sorted(fileList):
-                        command = buildCommand(dirName, f, None, args)
+                    for f in sorted(file_list):
+                        command = buildCommand(dir_path, f, None, args)
                         if command != None:
-                            command_dicts.append({"args": args, "dir": dirName, "cmd": command})
+                            command_dicts.append({"args": args, "dir": dir_path, "cmd": command})
         # pre execution tasks
         for i in args.imprt:
             exec("import " + i)
