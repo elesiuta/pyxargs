@@ -4,6 +4,7 @@ import csv
 import sys
 import argparse
 import datetime
+import multiprocessing
 
 class ArgparseCustomFormatter(argparse.HelpFormatter):
     def _split_lines(self, text, width):
@@ -183,7 +184,7 @@ if __name__ == "__main__":
     parser.add_argument("--post", nargs="*", type=str, default=[], metavar=("code"),
                         help="runs exec(code) for each line of code after execution, beware of side effects")
     parser.add_argument("-p", action="store", type=int, default=1, metavar="int",
-                        help="number of processes (todo)")
+                        help="number of processes (be careful!)")
     parser.add_argument("-n", "--norun", action="store_true",
                         help="prints commands without executing them")
     parser.add_argument("-v", "--verbose", action="store_true",
@@ -195,7 +196,11 @@ if __name__ == "__main__":
     args = parser.parse_args()
     if args.examples:
         print(examples)
-    if os.path.isdir(args.d) and len(args.command) >= 1:
+    # check for any argument combination known to cause issues
+    if (not os.path.isdir(args.d)) or (args.p <= 0) or (args.null and args.delim != None):
+        colourPrint("Invalid argument(s): %s" %(args), "FAIL")
+        sys.exit(0)
+    if len(args.command) >= 1:
         root_dir = args.d
         start_dir = os.getcwd()
         command_dicts = []
@@ -231,9 +236,6 @@ if __name__ == "__main__":
                         command = buildCommand(dirName, f, None, args)
                         if command != None:
                             command_dicts.append({"args": args, "dir": dirName, "cmd": command})
-        else:
-            colourPrint("Invalid argument combination: %s" %(args), "FAIL")
-            sys.exit(0)
         # pre execution tasks
         for i in args.imprt:
             exec("import " + i)
@@ -242,8 +244,15 @@ if __name__ == "__main__":
         for line in args.pre:
             exec(line)
         # execute commands
-        for command_dict in command_dicts:
-            output.append(["COMMAND(S):"] + command_dict["cmd"] + ["OUTPUT(S):"] + executeCommand(command_dict))
+        if args.p == 1:
+            for command_dict in command_dicts:
+                output.append(["COMMAND(S):"] + command_dict["cmd"] + ["OUTPUT(S):"] + executeCommand(command_dict))
+        elif args.p > 1:
+            with multiprocessing.Pool(args.p) as pool:
+                async_result = pool.map_async(executeCommand, command_dicts)
+                results = async_result.get()
+            for i in range(len(command_dicts)):
+                output.append(["COMMAND(S):"] + command_dicts[i]["cmd"] + ["OUTPUT(S):"] + results[i])
         # post execution tasks
         for line in args.post:
             exec(line)
