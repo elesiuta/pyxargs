@@ -1,24 +1,30 @@
 # pyxargs
 
 ```
-usage: pyxargs.py [-h] [-d base-directory] [-m mode] [-0] [--delimiter delim]
+usage: pyxargs.py [-h] [-s] [-d base-directory] [-m mode] [-0] [--delim char]
                   [-r regex] [-o] [-f] [-I replace-str]
                   [--resub pattern repl replace-str] [--py] [--pyev]
                   [--imprt [library [library ...]]]
                   [--imprtstar [library [library ...]]]
                   [--pre [code [code ...]]] [--post [code [code ...]]]
-                  [-p num] [-n] [-v] [-w] [--examples]
-                  [command-string [command-string ...]]
+                  [-p int] [-n] [-v] [-w] [--examples]
+                  [command-part [command-part ...]]
 
 build and execute command lines from standard input or file paths, a partial
 implementation of xargs in python. note: argparse does not escape spaces in
 arguments, use quotes.
 
 positional arguments:
-  command-string        command-string = "command [initial-arguments]"
+  command-part          (default)
+                        command-part[0] = base-command
+                        command-part[1:n] = initial-argument(s)
+                        (-s)
+                        command-part = "base-command [initial-argument(s)]"
 
 optional arguments:
   -h, --help            show this help message and exit
+  -s                    interpret each command-part as a separate command to
+                        be run sequentially
   -d base-directory     default: os.getcwd()
   -m mode               options are:
                         file    = build commands from filenames and execute in
@@ -32,22 +38,22 @@ optional arguments:
                         stdin   = build commands from standard input and
                                   execute in the base-directory
   -0, --null            input items are terminated by a null character instead
-                        of by whitespace, automatically sets mode to "stdin"
-  --delimiter delim     input items are terminated by the specified character
+                        of by whitespace, automatically sets mode = stdin
+  --delim char          input items are terminated by the specified delimiter
                         instead of whitespace and trailing whitespace is
-                        removed, automatically sets mode to "stdin"
+                        removed, automatically sets mode = stdin
   -r regex              only build commands from inputs matching regex
   -o                    omit inputs matching regex instead
   -f                    only match regex to filenames
-  -I replace-str        replace occurrences of replace-str in the initial-
-                        arguments with input, default: {}
+  -I replace-str        replace occurrences of replace-str in the command(s)
+                        with input, default: {}
   --resub pattern repl replace-str
-                        replace occurrences of replace-str in the initial-
-                        arguments with re.sub(patten, repl, input)
-  --py                  executes cmd as python code using exec(), takes
+                        replace occurrences of replace-str in the command(s)
+                        with re.sub(patten, repl, input)
+  --py                  executes command(s) as python code using exec(), takes
                         priority over --pyev flag, beware of side effects
-  --pyev                evaluates cmd as python expression using eval(), does
-                        nothing if run with --py flag
+  --pyev                evaluates command(s) as python expression(s) using
+                        eval(), does nothing if run with --py flag
   --imprt [library [library ...]]
                         runs exec("import " + library) on each library, beware
                         of side effects
@@ -60,7 +66,7 @@ optional arguments:
   --post [code [code ...]]
                         runs exec(code) for each line of code after execution,
                         beware of side effects
-  -p num                number of processes (todo)
+  -p int                number of processes (todo)
   -n, --norun           prints commands without executing them
   -v, --verbose         prints commands
   -w, --csv             writes results to pyxargs-<yymmdd-hhmmss>.csv in

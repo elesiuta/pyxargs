@@ -61,8 +61,11 @@ def buildCommand(dir_name, file_name, arg_input, args):
     else:
         if (re.search(args.r, arg_input) != None) == args.o:
             return None
-    # copy commands
-    command = args.command[:]
+    # interpret command(s)
+    if args.s:
+        command = args.command[:]
+    else:
+        command = [" ".join(args.command)]
     # re.sub input into command
     if args.resub != None:
         for i in range(len(command)):
@@ -121,12 +124,19 @@ if __name__ == "__main__":
     examples = """
     comparing usage with find | xargs
     find ./ -name "*" -type f -print0 | xargs -0 -I{} echo {}
-    find ./ -name "*" -type f -print0 | python pyxargs.py -0 "echo {}"
-    python pyxargs.py -m path "echo ./{}"
+    find ./ -name "*" -type f -print0 | python pyxargs.py -0 echo {}
+    python pyxargs.py -m path echo ./{}
     """
     parser = argparse.ArgumentParser(description=readme, formatter_class=ArgparseCustomFormatter)
-    parser.add_argument("command", action="store", type=str, metavar="command-string", nargs="*",
-                        help="command-string = \"command [initial-arguments]\"")
+    parser.add_argument("command", action="store", type=str, metavar="command-part", nargs="*",
+                        help="F!\n"
+                             "(default)\n"
+                             "command-part[0] = base-command\n"
+                             "command-part[1:n] = initial-argument(s)\n"
+                             "(-s)\n"
+                             "command-part = \"base-command [initial-argument(s)]\"")
+    parser.add_argument("-s", action="store_true",
+                        help="interpret each command-part as a separate command to be run sequentially")
     parser.add_argument("-d", type=str, default=os.getcwd(), metavar="base-directory",
                         help="default: os.getcwd()")
     parser.add_argument("-m", type=str, default="file", metavar="mode", choices=['file', 'path', 'abspath', 'dir', 'stdin'],
@@ -143,9 +153,9 @@ if __name__ == "__main__":
                              "stdin   = build commands from standard input and\n"
                              "          execute in the base-directory")
     parser.add_argument("-0", "--null", action="store_true",
-                        help="input items are terminated by a null character instead of by whitespace, automatically sets mode to \"stdin\"")
-    parser.add_argument("--delimiter", type=str, metavar="delim",
-                        help="input items are terminated by the specified character instead of whitespace and trailing whitespace is removed, automatically sets mode to \"stdin\"")
+                        help="input items are terminated by a null character instead of by whitespace, automatically sets mode = stdin")
+    parser.add_argument("--delim", type=str, metavar="char",
+                        help="input items are terminated by the specified delimiter instead of whitespace and trailing whitespace is removed, automatically sets mode = stdin")
     parser.add_argument("-r", type=str, default=".", metavar="regex",
                         help="only build commands from inputs matching regex")
     parser.add_argument("-o", action="store_true",
@@ -153,13 +163,13 @@ if __name__ == "__main__":
     parser.add_argument("-f", action="store_true",
                         help="only match regex to filenames")
     parser.add_argument("-I", action="store", type=str, default="{}", metavar="replace-str",
-                        help="replace occurrences of replace-str in the initial-arguments with input, default: {}")
+                        help="replace occurrences of replace-str in the command(s) with input, default: {}")
     parser.add_argument("--resub", nargs=3, type=str, metavar=("pattern", "repl", "replace-str"),
-                        help="replace occurrences of replace-str in the initial-arguments with re.sub(patten, repl, input)")
+                        help="replace occurrences of replace-str in the command(s) with re.sub(patten, repl, input)")
     parser.add_argument("--py", action="store_true",
-                        help="executes cmd as python code using exec(), takes priority over --pyev flag, beware of side effects")
+                        help="executes command(s) as python code using exec(), takes priority over --pyev flag, beware of side effects")
     parser.add_argument("--pyev", action="store_true",
-                        help="evaluates cmd as python expression using eval(), does nothing if run with --py flag")
+                        help="evaluates command(s) as python expression(s) using eval(), does nothing if run with --py flag")
     parser.add_argument("--imprt", nargs="*", type=str, default=[], metavar=("library"),
                         help="runs exec(\"import \" + library) on each library, beware of side effects")
     parser.add_argument("--imprtstar", nargs="*", type=str, default=[], metavar=("library"),
@@ -168,7 +178,7 @@ if __name__ == "__main__":
                         help="runs exec(code) for each line of code before execution, beware of side effects")
     parser.add_argument("--post", nargs="*", type=str, default=[], metavar=("code"),
                         help="runs exec(code) for each line of code after execution, beware of side effects")
-    parser.add_argument("-p", action="store", type=int, default=1, metavar="num",
+    parser.add_argument("-p", action="store", type=int, default=1, metavar="int",
                         help="number of processes (todo)")
     parser.add_argument("-n", "--norun", action="store_true",
                         help="prints commands without executing them")
@@ -187,16 +197,16 @@ if __name__ == "__main__":
         command_dicts = []
         output = []
         # use standard input or files from directory
-        if args.m == "stdin" or args.null or args.delimiter != None:
+        if args.m == "stdin" or args.null or args.delim != None:
             args.m = "stdin"
             # set seperator
             seperator = None
             if args.null:
                 seperator = "\0"
-            elif args.delimiter != None:
-                seperator = args.delimiter
+            elif args.delim != None:
+                seperator = args.delim
             # read input
-            if args.delimiter != None:
+            if args.delim != None:
                 stdin = sys.stdin.read().rstrip()
             else:
                 stdin = sys.stdin.read()
