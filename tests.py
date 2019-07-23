@@ -24,7 +24,7 @@ class TestPyxargs(unittest.TestCase):
         cmd = "python pyxargs.py -r \"\.git\" -o \"echo out {}\""
         with os.popen(cmd) as result:
             result = result.readlines()
-            self.assertEqual(result, ['out LICENSE\n', 'out README.md\n', 'out pyxargs.py\n', 'out tests.py\n'])
+            self.assertEqual(result, ['out LICENSE\n', 'out README.md\n', 'out pyxargs.py\n', 'out setup.py\n', 'out tests.py\n'])
 
     def test_re_filter_file_path(self):
         cmd = "python pyxargs.py -r \"\Aconfig\" \"echo out {}\""
@@ -48,13 +48,13 @@ class TestPyxargs(unittest.TestCase):
         cmd = "python pyxargs.py -r \".+\.py\" \"echo out {}\""
         with os.popen(cmd) as result:
             result = result.readlines()
-            self.assertEqual(result, ['out pyxargs.py\n', 'out tests.py\n'])
+            self.assertEqual(result, ['out pyxargs.py\n', 'out setup.py\n', 'out tests.py\n'])
 
     def test_resub(self):
         cmd = "python pyxargs.py -r \".+\.py\" --resub \"\.py\" \".txt\" \"{}\" \"echo out {}\""
         with os.popen(cmd) as result:
             result = result.readlines()
-            self.assertEqual(result, ['out pyxargs.txt\n', 'out tests.txt\n'])
+            self.assertEqual(result, ['out pyxargs.txt\n', 'out setup.txt\n', 'out tests.txt\n'])
 
     def test_re_omit(self):
         cmd = "python pyxargs.py -r \"(.+\.py)|(\.git)\" -o \"echo out {}\""
