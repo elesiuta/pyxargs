@@ -238,11 +238,11 @@ def main():
                             command_dicts.append({"args": args, "dir": dir_path, "cmd": command})
         # pre execution tasks
         for i in args.imprt:
-            exec("import " + i)
+            exec("import " + i, globals())
         for i in args.imprtstar:
-            exec("from " + i + " import *")
+            exec("from " + i + " import *", globals())
         for line in args.pre:
-            exec(line)
+            exec(line, globals())
         # execute commands
         if args.p == 1:
             for command_dict in command_dicts:
@@ -255,7 +255,7 @@ def main():
                 output.append(["COMMAND(S):"] + command_dicts[i]["cmd"] + ["OUTPUT(S):"] + results[i])
         # post execution tasks
         for line in args.post:
-            exec(line)
+            exec(line, globals())
         # write csv
         if args.csv:
             file_name = "pyxargs" + datetime.datetime.now().strftime("%y%m%d-%H%M%S") + ".csv"
