@@ -5,8 +5,8 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="pyxargs",
-    version="0.9.1",
-    description="Build and execute command lines from standard input or file paths, a partial implementation of xargs in python with some added pythonic features.",
+    version="0.9.2",
+    description="A partial implementation of xargs in python with some added pythonic features",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/elesiuta/pyxargs",
