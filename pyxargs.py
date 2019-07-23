@@ -121,7 +121,7 @@ def executeCommand(command_dict):
                 output.append("os.system")
         return output
 
-if __name__ == "__main__":
+def main():
     readme = ("build and execute command lines from standard input or file paths, "
               "a partial implementation of xargs in python with some added pythonic features. ")
     examples = """
@@ -260,3 +260,6 @@ if __name__ == "__main__":
         if args.csv:
             file_name = "pyxargs" + datetime.datetime.now().strftime("%y%m%d-%H%M%S") + ".csv"
             writeCsv(os.path.join(start_dir, file_name), output)
+
+if __name__ == "__main__":
+    sys.exit(main())
