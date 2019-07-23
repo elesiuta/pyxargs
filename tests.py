@@ -48,7 +48,10 @@ class TestPyxargs(unittest.TestCase):
         cmd = "python pyxargs.py -m path -r \"\Aconfig\" -f \"echo out {}\""
         with os.popen(cmd) as result:
             result = result.readlines()
-            self.assertEqual(result, ['out .git\\config\n'])
+            if os.name == "nt":
+                self.assertEqual(result, ['out .git\\config\n'])
+            else:
+                self.assertEqual(result, ['out .git/config\n'])
 
     def test_filter_file_extension(self):
         cmd = "python pyxargs.py -r \".+\.py\" \"echo out {}\""
@@ -115,6 +118,22 @@ class TestPyxargs(unittest.TestCase):
         with os.popen(cmd) as result:
             result = result.readlines()
             self.assertEqual(result, ['echo out hello\n', 'echo out world\n'])
+
+    def test_read_items_argfile(self):
+        if os.name == "nt":
+            cmd = "type setup.py | pyxargs -m stdin echo out {}"
+        elif os.name == "posix":
+            cmd = "cat setup.py | pyxargs -m stdin echo out {}"
+        else:
+            self.assertEqual(True, False, "Unrecognized OS by this test")
+        with open("setup.py", "r") as f:
+            content = f.read()
+            solution = []
+            for arg in content.split():
+                solution.append("out " + arg + "\n")
+        with os.popen(cmd) as result:
+            result = result.readlines()
+            self.assertEqual(result, solution)
 
 if __name__ == '__main__':
     unittest.main()
