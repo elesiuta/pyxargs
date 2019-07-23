@@ -11,14 +11,13 @@ usage: pyxargs.py [-h] [-s] [-d base-directory] [-m mode] [-0] [--delim char]
                   [command-part [command-part ...]]
 
 build and execute command lines from standard input or file paths, a partial
-implementation of xargs in python. note: argparse does not escape spaces in
-arguments, use quotes.
+implementation of xargs in python with some added pythonic features.
 
 positional arguments:
   command-part          (default)
                         command-part[0] = base-command
-                        command-part[1:n] = initial-argument(s)
-                        (-s)
+                        command-part[1:N] = initial-argument(s)
+                        (pyxargs -s)
                         command-part = "base-command [initial-argument(s)]"
 
 optional arguments:
@@ -34,9 +33,10 @@ optional arguments:
                                   directory
                         abspath = build commands from file paths relative to
                                   root and execute in the base directory
-                        dir     = pass directories only
+                        dir     = build commands from directory names instead
+                                  of filenames
                         stdin   = build commands from standard input and
-                                  execute in the base-directory
+                                  execute in the base directory
   -0, --null            input items are terminated by a null character instead
                         of by whitespace, automatically sets mode = stdin
   --delim char          input items are terminated by the specified delimiter
@@ -50,10 +50,10 @@ optional arguments:
   --resub pattern repl replace-str
                         replace occurrences of replace-str in the command(s)
                         with re.sub(patten, repl, input)
-  --py                  executes command(s) as python code using exec(), takes
-                        priority over --pyev flag, beware of side effects
+  --py                  executes command(s) as python code using exec(),
+                        beware of side effects
   --pyev                evaluates command(s) as python expression(s) using
-                        eval(), does nothing if run with --py flag
+                        eval()
   --imprt [library [library ...]]
                         runs exec("import " + library) on each library, beware
                         of side effects

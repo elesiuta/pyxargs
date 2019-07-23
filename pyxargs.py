@@ -123,22 +123,21 @@ def executeCommand(command_dict):
 
 if __name__ == "__main__":
     readme = ("build and execute command lines from standard input or file paths, "
-              "a partial implementation of xargs in python. "
-              "note: argparse does not escape spaces in arguments, use quotes. ")
+              "a partial implementation of xargs in python with some added pythonic features. ")
     examples = """
     comparing usage with find | xargs
     find ./ -name "*" -type f -print0 | xargs -0 -I{} echo {}
-    find ./ -name "*" -type f -print0 | python pyxargs.py -0 echo {}
-    python pyxargs.py -m path echo ./{}
-    python pyxargs.py -m path --py "print('./{}')"
+    find ./ -name "*" -type f -print0 | pyxargs -0 echo {}
+    pyxargs -m path echo ./{}
+    pyxargs -m path --py "print('./{}')"
     """
     parser = argparse.ArgumentParser(description=readme, formatter_class=ArgparseCustomFormatter)
     parser.add_argument("command", action="store", type=str, metavar="command-part", nargs="*",
                         help="F!\n"
                              "(default)\n"
                              "command-part[0] = base-command\n"
-                             "command-part[1:n] = initial-argument(s)\n"
-                             "(-s)\n"
+                             "command-part[1:N] = initial-argument(s)\n"
+                             "(pyxargs -s)\n"
                              "command-part = \"base-command [initial-argument(s)]\"")
     parser.add_argument("-s", action="store_true",
                         help="interpret each command-part as a separate command to be run sequentially")
@@ -154,9 +153,10 @@ if __name__ == "__main__":
                              "          directory\n"
                              "abspath = build commands from file paths relative to\n"
                              "          root and execute in the base directory\n"
-                             "dir     = pass directories only\n"
+                             "dir     = build commands from directory names instead\n"
+                             "          of filenames\n"
                              "stdin   = build commands from standard input and\n"
-                             "          execute in the base-directory")
+                             "          execute in the base directory")
     parser.add_argument("-0", "--null", action="store_true",
                         help="input items are terminated by a null character instead of by whitespace, automatically sets mode = stdin")
     parser.add_argument("--delim", type=str, metavar="char",
@@ -172,9 +172,9 @@ if __name__ == "__main__":
     parser.add_argument("--resub", nargs=3, type=str, metavar=("pattern", "repl", "replace-str"),
                         help="replace occurrences of replace-str in the command(s) with re.sub(patten, repl, input)")
     parser.add_argument("--py", action="store_true",
-                        help="executes command(s) as python code using exec(), takes priority over --pyev flag, beware of side effects")
+                        help="executes command(s) as python code using exec(), beware of side effects")
     parser.add_argument("--pyev", action="store_true",
-                        help="evaluates command(s) as python expression(s) using eval(), does nothing if run with --py flag")
+                        help="evaluates command(s) as python expression(s) using eval()")
     parser.add_argument("--imprt", nargs="*", type=str, default=[], metavar=("library"),
                         help="runs exec(\"import \" + library) on each library, beware of side effects")
     parser.add_argument("--imprtstar", nargs="*", type=str, default=[], metavar=("library"),
@@ -197,7 +197,7 @@ if __name__ == "__main__":
     if args.examples:
         print(examples)
     # check for any argument combination known to cause issues
-    if (not os.path.isdir(args.d)) or (args.p <= 0) or (args.null and args.delim != None):
+    if (not os.path.isdir(args.d)) or (args.p <= 0) or (args.null and args.delim != None) or (args.py and args.pyev):
         colourPrint("Invalid argument(s): %s" %(args), "FAIL")
         sys.exit(0)
     if len(args.command) >= 1:
