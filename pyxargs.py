@@ -162,6 +162,8 @@ def main():
                         help="input items are terminated by a null character instead of by whitespace, automatically sets mode = stdin")
     parser.add_argument("--delim", type=str, metavar="char",
                         help="input items are terminated by the specified delimiter instead of whitespace and trailing whitespace is removed, automatically sets mode = stdin")
+    parser.add_argument("-a", type=str, metavar="file",
+                        help="read items from file instead of standard input to build commands, automatically sets mode = stdin")
     parser.add_argument("-r", type=str, default=".", metavar="regex",
                         help="only build commands from inputs matching regex")
     parser.add_argument("-o", action="store_true",
@@ -204,8 +206,8 @@ def main():
         start_dir = os.getcwd()
         command_dicts = []
         output = []
-        # use standard input or files from directory
-        if args.m == "stdin" or args.null or args.delim != None:
+        # use standard input mode or walk the directory tree
+        if args.m == "stdin" or args.null or args.delim != None or args.a != None:
             args.m = "stdin"
             # set seperator
             seperator = None
@@ -213,12 +215,23 @@ def main():
                 seperator = "\0"
             elif args.delim != None:
                 seperator = args.delim
-            # read input
-            if args.delim != None:
-                stdin = sys.stdin.read().rstrip()
+            # read input from stdin or file
+            if args.a == None:
+                if args.delim != None:
+                    stdin = sys.stdin.read().rstrip()
+                else:
+                    stdin = sys.stdin.read()
+                arg_input_list = stdin.split(seperator)
+            elif os.path.isfile(args.a):
+                with open(args.a, "r") as f:
+                    if seperator == None:
+                        arg_input_list = f.readlines()
+                    else:
+                        arg_input_list = f.read().split(seperator)
             else:
-                stdin = sys.stdin.read()
-            for arg_input in stdin.split(seperator):
+                colourPrint("Invalid file: %s" %(args.a), "FAIL")
+                sys.exit(0)
+            for arg_input in arg_input_list:
                 command = buildCommand(None, None, arg_input, args)
                 if command != None:
                     command_dicts.append({"args": args, "dir": base_dir, "cmd": command})

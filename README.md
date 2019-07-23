@@ -2,7 +2,7 @@
 
 ```
 usage: pyxargs [-h] [-s] [-d base-directory] [-m mode] [-0] [--delim char]
-               [-r regex] [-o] [-f] [-I replace-str]
+               [-a file] [-r regex] [-o] [-f] [-I replace-str]
                [--resub pattern repl replace-str] [--py] [--pyev]
                [--imprt [library [library ...]]]
                [--imprtstar [library [library ...]]] [--pre [code [code ...]]]
@@ -41,6 +41,8 @@ optional arguments:
   --delim char          input items are terminated by the specified delimiter
                         instead of whitespace and trailing whitespace is
                         removed, automatically sets mode = stdin
+  -a file               read items from file instead of standard input to
+                        build commands, automatically sets mode = stdin
   -r regex              only build commands from inputs matching regex
   -o                    omit inputs matching regex instead
   -f                    only match regex to filenames

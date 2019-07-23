@@ -30,7 +30,7 @@ class TestPyxargs(unittest.TestCase):
         cmd = "python pyxargs.py -r \"\.git\" -o \"echo out {}\""
         with os.popen(cmd) as result:
             result = result.readlines()
-            self.assertEqual(result, ['out LICENSE\n', 'out README.md\n', 'out pyxargs.py\n', 'out setup.py\n', 'out tests.py\n'])
+            self.assertEqual(result, ['out LICENSE\n', 'out README.md\n', 'out pyxargs.py\n', 'out setup.py\n', 'out test.txt\n', 'out tests.py\n'])
 
     def test_re_filter_file_path(self):
         cmd = "python pyxargs.py -r \"\Aconfig\" \"echo out {}\""
@@ -69,7 +69,7 @@ class TestPyxargs(unittest.TestCase):
         cmd = "python pyxargs.py -r \"(.+\.py)|(\.git)\" -o \"echo out {}\""
         with os.popen(cmd) as result:
             result = result.readlines()
-            self.assertEqual(result, ['out LICENSE\n', 'out README.md\n'])
+            self.assertEqual(result, ['out LICENSE\n', 'out README.md\n', 'out test.txt\n'])
 
     def test_stdin_delimiter(self):
         cmd = "echo hello,world,bye,world | python pyxargs.py --delim , \"echo out {}\""
@@ -119,23 +119,35 @@ class TestPyxargs(unittest.TestCase):
             result = result.readlines()
             self.assertEqual(result, ['echo out hello\n', 'echo out world\n'])
 
-    def test_read_items_argfile(self):
+    def test_read_items_cat_type(self):
         if os.name == "nt":
             cmd = "type test.txt | pyxargs -m stdin echo out {}"
         elif os.name == "posix":
             cmd = "cat test.txt | pyxargs -m stdin echo out {}"
         else:
             self.assertEqual(True, False, "Unrecognized OS by this test")
-        file_content = ["Hello\n", "World\n", "192.168.0.1\n"]
-        with open("test.txt", "w") as f:
-            f.writelines(file_content)
+        with open("test.txt", "r") as f:
+            file_content = f.readlines()
         solution = []
         for line in file_content:
             solution.append("out " + line)
         with os.popen(cmd) as result:
             result = result.readlines()
-            os.remove("test.txt")
             self.assertEqual(result, solution)
 
+    def test_read_items_file(self):
+        cmd = "python pyxargs.py -a test.txt echo out {}"
+        with open("test.txt", "r") as f:
+            file_content = f.readlines()
+        solution = []
+        for line in file_content:
+            solution.append("out " + line)
+        with os.popen(cmd) as result:
+            result = result.readlines()
+            self.assertListEqual(result, solution)
+
 if __name__ == '__main__':
+    file_content = ["Hello\n", "World\n", "192.168.0.1\n"]
+    with open("test.txt", "w") as f:
+        f.writelines(file_content)
     unittest.main()
