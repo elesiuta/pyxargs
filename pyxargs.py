@@ -194,8 +194,6 @@ def main():
     parser.add_argument("--examples", action="store_true",
                         help="print example usage")
     args = parser.parse_args()
-    if args.examples:
-        print(examples)
     # check for any argument combination known to cause issues
     if (not os.path.isdir(args.d)) or (args.p <= 0) or (args.null and args.delim != None) or (args.py and args.pyev):
         colourPrint("Invalid argument(s): %s" %(args), "FAIL")
@@ -260,6 +258,10 @@ def main():
         if args.csv:
             file_name = "pyxargs" + datetime.datetime.now().strftime("%y%m%d-%H%M%S") + ".csv"
             writeCsv(os.path.join(start_dir, file_name), output)
+    elif args.examples:
+        print(examples)
+    else:
+        parser.print_usage()
 
 if __name__ == "__main__":
     sys.exit(main())
