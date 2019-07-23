@@ -123,10 +123,11 @@ def executeCommand(command_dict):
 
 def main():
     readme = ("build and execute command lines from standard input or file paths, "
-              "a partial implementation of xargs in python with some added pythonic features. ")
+              "a mostly complete implementation of xargs in python with some added pythonic features. ")
     examples = """
     comparing usage with find | xargs
-    find ./ -name "*" -type f -print0 | xargs -0 -I{} echo {}
+    find ./ -name "*" -type f -print0 | xargs -0 -I {} echo {}
+    find ./ -name "*" -type f -print0 | pyxargs -0 -I {} echo {}
     find ./ -name "*" -type f -print0 | pyxargs -0 echo {}
     pyxargs -m path echo ./{}
     pyxargs -m path --py "print('./{}')"

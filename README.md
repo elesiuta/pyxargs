@@ -1,17 +1,16 @@
 # pyxargs
 
 ```
-usage: pyxargs.py [-h] [-s] [-d base-directory] [-m mode] [-0] [--delim char]
-                  [-r regex] [-o] [-f] [-I replace-str]
-                  [--resub pattern repl replace-str] [--py] [--pyev]
-                  [--imprt [library [library ...]]]
-                  [--imprtstar [library [library ...]]]
-                  [--pre [code [code ...]]] [--post [code [code ...]]]
-                  [-p int] [-n] [-v] [-w] [--examples]
-                  [command-part [command-part ...]]
+usage: pyxargs [-h] [-s] [-d base-directory] [-m mode] [-0] [--delim char]
+               [-r regex] [-o] [-f] [-I replace-str]
+               [--resub pattern repl replace-str] [--py] [--pyev]
+               [--imprt [library [library ...]]]
+               [--imprtstar [library [library ...]]] [--pre [code [code ...]]]
+               [--post [code [code ...]]] [-p int] [-n] [-v] [-w] [--examples]
+               [command-part [command-part ...]]
 
-build and execute command lines from standard input or file paths, a partial
-implementation of xargs in python with some added pythonic features.
+build and execute command lines from standard input or file paths, a mostly
+complete implementation of xargs in python with some added pythonic features.
 
 positional arguments:
   command-part          (default)
