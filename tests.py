@@ -121,18 +121,20 @@ class TestPyxargs(unittest.TestCase):
 
     def test_read_items_argfile(self):
         if os.name == "nt":
-            cmd = "type setup.py | pyxargs -m stdin echo out {}"
+            cmd = "type test.txt | pyxargs -m stdin echo out {}"
         elif os.name == "posix":
-            cmd = "cat setup.py | pyxargs -m stdin echo out {}"
+            cmd = "cat test.txt | pyxargs -m stdin echo out {}"
         else:
             self.assertEqual(True, False, "Unrecognized OS by this test")
-        with open("setup.py", "r") as f:
-            content = f.read()
-            solution = []
-            for arg in content.split():
-                solution.append("out " + arg + "\n")
+        file_content = ["Hello\n", "World\n", "192.168.0.1\n"]
+        with open("test.txt", "w") as f:
+            f.writelines(file_content)
+        solution = []
+        for line in file_content:
+            solution.append("out " + line)
         with os.popen(cmd) as result:
             result = result.readlines()
+            os.remove("test.txt")
             self.assertEqual(result, solution)
 
 if __name__ == '__main__':
