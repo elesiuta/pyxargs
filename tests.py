@@ -8,6 +8,12 @@ class TestPyxargs(unittest.TestCase):
             result = result.readlines()
             self.assertEqual(result, ['out hello\n', 'out world\n'])
 
+    def test_invoke_pyxargs_from_install(self):
+        cmd = "echo hello world | pyxargs -m stdin \"echo out {}\""
+        with os.popen(cmd) as result:
+            result = result.readlines()
+            self.assertEqual(result, ['out hello\n', 'out world\n'])
+
     def test_join_command_args(self):
         cmd = "echo hello world | python pyxargs.py -m stdin echo out {}"
         with os.popen(cmd) as result:
