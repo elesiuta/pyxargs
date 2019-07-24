@@ -113,6 +113,18 @@ class TestPyxargs(unittest.TestCase):
             result = result.readlines()
             self.assertEqual(result, ['hello\n', 'world\n', 'bye\n', 'world\n', '4\n'])
 
+    def test_exec_namespace(self):
+        cmd = "echo hello world bye world | python pyxargs.py -m stdin --pre \"output = 0\" --py -s \"print('{}')\" \"output += 1\" --post \"print(locals())\""
+        with os.popen(cmd) as result:
+            result = result.readlines()
+            self.assertEqual(result, ['hello\n', 'world\n', 'bye\n', 'world\n', "{'output': 4}\n"])
+
+    def test_import(self):
+        cmd = "echo hello world bye world | python pyxargs.py -m stdin --imprt math --imprtstar math --pre \"output = 0\" --py -s \"print('{}')\" \"output += math.sin(pi/2)\" --post \"print(output)\""
+        with os.popen(cmd) as result:
+            result = result.readlines()
+            self.assertEqual(result, ['hello\n', 'world\n', 'bye\n', 'world\n', '4.0\n'])
+
     def test_norun(self):
         cmd = "echo hello world | python pyxargs.py -m stdin --norun \"echo out {}\""
         with os.popen(cmd) as result:

@@ -6,6 +6,8 @@ import argparse
 import datetime
 import multiprocessing
 
+user_namespace = {}
+
 class ArgparseCustomFormatter(argparse.HelpFormatter):
     def _split_lines(self, text, width):
         if text[:2] == 'F!':
@@ -102,13 +104,13 @@ def executeCommand(command_dict):
                 colourPrint(cmd,"OKGREEN")
             if args.py:
                 try:
-                    exec(cmd, globals())
+                    exec(cmd, globals(), user_namespace)
                     output.append("EXEC SUCCESS")
                 except Exception as e:
                     output.append("EXEC ERROR: " + str(e))
             elif args.pyev:
                 try:
-                    output.append(eval(cmd))
+                    output.append(eval(cmd, globals(), user_namespace))
                 except Exception as e:
                     output.append("EVAL ERROR: " + str(e))
             elif args.csv:
@@ -257,11 +259,11 @@ def main():
                             command_dicts.append({"args": args, "dir": dir_path, "cmd": command})
         # pre execution tasks
         for i in args.imprt:
-            exec("import " + i, globals())
+            exec("import " + i, globals(), user_namespace)
         for i in args.imprtstar:
-            exec("from " + i + " import *", globals())
+            exec("from " + i + " import *", globals(), user_namespace)
         for line in args.pre:
-            exec(line, globals())
+            exec(line, globals(), user_namespace)
         # execute commands
         if args.p == 1:
             for command_dict in command_dicts:
@@ -274,7 +276,7 @@ def main():
                 output.append(["COMMAND(S):"] + command_dicts[i]["cmd"] + ["OUTPUT(S):"] + results[i])
         # post execution tasks
         for line in args.post:
-            exec(line, globals())
+            exec(line, globals(), user_namespace)
         # write csv
         if args.csv:
             file_name = "pyxargs" + datetime.datetime.now().strftime("%y%m%d-%H%M%S") + ".csv"
