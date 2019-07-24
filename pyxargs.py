@@ -8,37 +8,43 @@ import multiprocessing
 
 user_namespace = {}
 
+
 class ArgparseCustomFormatter(argparse.HelpFormatter):
     def _split_lines(self, text, width):
         if text[:2] == 'F!':
             return text.splitlines()[1:]
         return argparse.HelpFormatter._split_lines(self, text, width)
 
+
 def replaceSurrogates(string):
     return string.encode('utf16', 'surrogatepass').decode('utf16', 'replace')
 
+
 def colourPrint(string, colour):
     colours = {
-        "HEADER" : '\033[95m',
-        "OKBLUE" : '\033[94m',
-        "OKGREEN" : '\033[92m',
-        "WARNING" : '\033[93m',
-        "FAIL" : '\033[91m',
-        "ENDC" : '\033[0m',
-        "BOLD" : '\033[1m',
-        "UNDERLINE" : '\033[4m'
+        "HEADER": '\033[95m',
+        "OKBLUE": '\033[94m',
+        "OKGREEN": '\033[92m',
+        "WARNING": '\033[93m',
+        "FAIL": '\033[91m',
+        "ENDC": '\033[0m',
+        "BOLD": '\033[1m',
+        "UNDERLINE": '\033[4m'
     }
     string = replaceSurrogates(string)
     print(colours[colour] + string + colours["ENDC"])
 
+
 def safePrint(string):
     print(replaceSurrogates(string))
 
-def writeCsv(fName, data, enc = None, delimiter = ","):
+
+def writeCsv(fName, data, enc=None, delimiter=","):
     with open(fName, "w", newline="", encoding=enc, errors="backslashreplace") as f:
         writer = csv.writer(f, delimiter=delimiter)
         for row in data:
             writer.writerow(row)
+
 
 def buildCommand(dir_name, file_name, arg_input, args):
     # mode
@@ -79,6 +85,7 @@ def buildCommand(dir_name, file_name, arg_input, args):
     # and finally
     return command
 
+
 def executeCommand(command_dict):
     args = command_dict["args"]
     dir_name = command_dict["dir"]
@@ -101,7 +108,7 @@ def executeCommand(command_dict):
                 colourPrint(str(cmds), "OKBLUE")
         for cmd in cmds:
             if args.verbose:
-                colourPrint(cmd,"OKGREEN")
+                colourPrint(cmd, "OKGREEN")
             if args.py:
                 try:
                     exec(cmd, globals(), user_namespace)
@@ -122,6 +129,7 @@ def executeCommand(command_dict):
                 os.system(cmd)
                 output.append("os.system")
         return output
+
 
 def main():
     readme = ("build and execute command lines from standard input or file paths, "
@@ -201,7 +209,7 @@ def main():
     args = parser.parse_args()
     # check for any argument combination known to cause issues
     if (not os.path.isdir(args.d)) or (args.p <= 0) or (args.null and args.delim != None) or (args.py and args.pyev):
-        colourPrint("Invalid argument(s): %s" %(args), "FAIL")
+        colourPrint("Invalid argument(s): %s" % (args), "FAIL")
         sys.exit(0)
     # process commands
     if len(args.command) >= 1:
@@ -235,7 +243,7 @@ def main():
                         arg_input_list = f.read().split(seperator)
             else:
                 # error
-                colourPrint("Invalid file: %s" %(args.a), "FAIL")
+                colourPrint("Invalid file: %s" % (args.a), "FAIL")
                 sys.exit(0)
             # build commands from input
             for arg_input in arg_input_list:
