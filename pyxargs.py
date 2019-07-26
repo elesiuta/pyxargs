@@ -6,6 +6,7 @@ import argparse
 import datetime
 import multiprocessing
 
+
 user_namespace = {}
 
 
@@ -132,8 +133,10 @@ def executeCommand(command_dict):
 
 
 def main():
-    readme = ("build and execute command lines from standard input or file paths, "
-              "a mostly complete implementation of xargs in python with some added pythonic features. ")
+    readme = ("Build and execute command lines from standard input or file paths, "
+              "a mostly complete implementation of xargs in python with some added features. "
+              "The default mode (file) builds commands using filenames only and executes them in each files respective directory, "
+              "this is useful when dealing with file paths containing multiple character encodings.")
     examples = """
     comparing usage with find | xargs
     find ./ -name "*" -type f -print0 | xargs -0 -I {} echo {}
@@ -294,6 +297,7 @@ def main():
         print(examples)
     else:
         parser.print_usage()
+
 
 if __name__ == "__main__":
     sys.exit(main())

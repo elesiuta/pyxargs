@@ -9,8 +9,11 @@ usage: pyxargs [-h] [-s] [-d base-directory] [-m mode] [-0] [--delim char]
                [--post [code [code ...]]] [-p int] [-n] [-v] [-w] [--examples]
                [command-part [command-part ...]]
 
-build and execute command lines from standard input or file paths, a mostly
-complete implementation of xargs in python with some added pythonic features.
+Build and execute command lines from standard input or file paths, a mostly
+complete implementation of xargs in python with some added features. The
+default mode (file) builds commands using filenames only and executes them in
+each files respective directory, this is useful when dealing with file paths
+containing multiple character encodings.
 
 positional arguments:
   command-part          (default)
