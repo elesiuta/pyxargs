@@ -1,3 +1,16 @@
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 import os
 import re
 import csv
@@ -133,9 +146,9 @@ def executeCommand(command_dict):
 
 
 def main():
-    readme = ("Build and execute command lines from standard input or file paths, "
+    readme = ("Build and execute command lines or python code from standard input or file paths, "
               "a mostly complete implementation of xargs in python with some added features. "
-              "The default mode (file) builds commands using filenames only and executes them in each files respective directory, "
+              "The default mode (file) builds commands using filenames only and executes them in their respective directories, "
               "this is useful when dealing with file paths containing multiple character encodings.")
     examples = """
     comparing usage with find | xargs
@@ -145,16 +158,15 @@ def main():
     pyxargs -m path echo ./{}
     pyxargs -m path --py "print('./{}')"
     """
-    parser = argparse.ArgumentParser(description=readme, formatter_class=ArgparseCustomFormatter)
-    parser.add_argument("command", action="store", type=str, metavar="command-part", nargs="*",
-                        help="F!\n"
-                             "(default)\n"
-                             "command-part[0] = base-command\n"
-                             "command-part[1:N] = initial-argument(s)\n"
-                             "(pyxargs -s)\n"
-                             "command-part = \"base-command [initial-argument(s)]\"")
+    parser = argparse.ArgumentParser(description=readme,
+                                     formatter_class=lambda prog: ArgparseCustomFormatter(prog, max_help_position=24),
+                                     usage="%(prog)s [options] [command [initial-arguments...]]\n"
+                                           "       %(prog)s [options] -s \"[command [initial-arguments...]]\"...\n"
+                                           "       %(prog)s -h | --help | --examples")
+    parser.add_argument("command", action="store", type=str, nargs="*",
+                        help=argparse.SUPPRESS)
     parser.add_argument("-s", action="store_true",
-                        help="interpret each command-part as a separate command to be run sequentially")
+                        help="support for multiple commands to be run sequentially by encapsulating each in quotes")
     parser.add_argument("-d", type=str, default=os.getcwd(), metavar="base-directory",
                         help="default: os.getcwd()")
     parser.add_argument("-m", type=str, default="file", metavar="mode", choices=['file', 'path', 'abspath', 'dir', 'stdin'],

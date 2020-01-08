@@ -1,31 +1,20 @@
 # pyxargs
 
 ```
-usage: pyxargs [-h] [-s] [-d base-directory] [-m mode] [-0] [--delim char]
-               [-a file] [-r regex] [-o] [-f] [-I replace-str]
-               [--resub pattern repl replace-str] [--py] [--pyev]
-               [--imprt [library [library ...]]]
-               [--imprtstar [library [library ...]]] [--pre [code [code ...]]]
-               [--post [code [code ...]]] [-p int] [-n] [-v] [-w] [--examples]
-               [command-part [command-part ...]]
+usage: pyxargs.py [options] [command [initial-arguments...]]
+       pyxargs.py [options] -s "[command [initial-arguments...]]"...
+       pyxargs.py -h | --help | --examples
 
-Build and execute command lines from standard input or file paths, a mostly
-complete implementation of xargs in python with some added features. The
-default mode (file) builds commands using filenames only and executes them in
-each files respective directory, this is useful when dealing with file paths
-containing multiple character encodings.
-
-positional arguments:
-  command-part          (default)
-                        command-part[0] = base-command
-                        command-part[1:N] = initial-argument(s)
-                        (pyxargs -s)
-                        command-part = "base-command [initial-argument(s)]"
+Build and execute command lines or python code from standard input or file
+paths, a mostly complete implementation of xargs in python with some added
+features. The default mode (file) builds commands using filenames only and
+executes them in their respective directories, this is useful when dealing
+with file paths containing multiple character encodings.
 
 optional arguments:
   -h, --help            show this help message and exit
-  -s                    interpret each command-part as a separate command to
-                        be run sequentially
+  -s                    support for multiple commands to be run sequentially
+                        by encapsulating each in quotes
   -d base-directory     default: os.getcwd()
   -m mode               options are:
                         file    = build commands from filenames and execute in
