@@ -152,7 +152,7 @@ def executeCommand(command_dict):
 def main():
     readme = ("Build and execute command lines or python code from standard input or file paths, "
               "a mostly complete implementation of xargs in python with some added features. "
-              "The default mode (file) builds commands using filenames only and executes them in their respective directories, "
+              "The default input mode (file) builds commands using filenames only and executes them in their respective directories, "
               "this is useful when dealing with file paths containing multiple character encodings.")
     examples = """
     comparing usage with find | xargs
@@ -164,8 +164,8 @@ def main():
     """
     parser = argparse.ArgumentParser(description=readme,
                                      formatter_class=lambda prog: ArgparseCustomFormatter(prog, max_help_position=24),
-                                     usage="%(prog)s [options] [command [initial-arguments...]]\n"
-                                           "       %(prog)s [options] -s \"[command [initial-arguments...]]\"...\n"
+                                     usage="%(prog)s [options] [command [initial-arguments ...]]\n"
+                                           "       %(prog)s [options] -s \"[command [initial-arguments ...]]\" ...\n"
                                            "       %(prog)s -h | --help | --examples")
     parser.add_argument("command", action="store", type=str, nargs="*",
                         help=argparse.SUPPRESS)
@@ -207,13 +207,13 @@ def main():
                         help="executes command(s) as python code using exec(), beware of side effects")
     parser.add_argument("--pyev", action="store_true",
                         help="evaluates command(s) as python expression(s) using eval()")
-    parser.add_argument("--import", nargs="*", type=str, default=[], metavar=("library"), dest="imprt",
+    parser.add_argument("--import", nargs="+", type=str, default=[], metavar=("library"), dest="imprt",
                         help="runs exec(\"import \" + library) on each library, beware of side effects")
-    parser.add_argument("--importstar", nargs="*", type=str, default=[], metavar=("library"), dest="imprtstar",
+    parser.add_argument("--importstar", nargs="+", type=str, default=[], metavar=("library"), dest="imprtstar",
                         help="runs exec(\"from \" + library + \" import *\") on each library, beware of side effects")
-    parser.add_argument("--pre", nargs="*", type=str, default=[], metavar=("code"),
+    parser.add_argument("--pre", nargs="+", type=str, default=[], metavar=("code"),
                         help="runs exec(code) for each line of code before execution, beware of side effects")
-    parser.add_argument("--post", nargs="*", type=str, default=[], metavar=("code"),
+    parser.add_argument("--post", nargs="+", type=str, default=[], metavar=("code"),
                         help="runs exec(code) for each line of code after execution, beware of side effects")
     parser.add_argument("-p", action="store", type=int, default=1, metavar="int",
                         help="number of processes")

@@ -1,14 +1,14 @@
 # pyxargs
 
 ```
-usage: pyxargs [options] [command [initial-arguments...]]
-       pyxargs [options] -s "[command [initial-arguments...]]"...
-       pyxargs -h | --help | --examples
+usage: pyxargs.py [options] [command [initial-arguments ...]]
+       pyxargs.py [options] -s "[command [initial-arguments ...]]" ...
+       pyxargs.py -h | --help | --examples
 
 Build and execute command lines or python code from standard input or file
 paths, a mostly complete implementation of xargs in python with some added
-features. The default mode (file) builds commands using filenames only and
-executes them in their respective directories, this is useful when dealing
+features. The default input mode (file) builds commands using filenames only
+and executes them in their respective directories, this is useful when dealing
 with file paths containing multiple character encodings.
 
 optional arguments:
@@ -47,16 +47,16 @@ optional arguments:
                         beware of side effects
   --pyev                evaluates command(s) as python expression(s) using
                         eval()
-  --import [library [library ...]]
+  --import library [library ...]
                         runs exec("import " + library) on each library, beware
                         of side effects
-  --importstar [library [library ...]]
+  --importstar library [library ...]
                         runs exec("from " + library + " import *") on each
                         library, beware of side effects
-  --pre [code [code ...]]
+  --pre code [code ...]
                         runs exec(code) for each line of code before
                         execution, beware of side effects
-  --post [code [code ...]]
+  --post code [code ...]
                         runs exec(code) for each line of code after execution,
                         beware of side effects
   -p int                number of processes
