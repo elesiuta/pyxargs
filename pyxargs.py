@@ -297,9 +297,8 @@ def main():
         if args.p == 1:
             if args.interactive:
                 for command_dict in command_dicts:
-                    for cmd in command_dict["cmd"]:
-                        safePrint(cmd)
-                    colourPrint("Run command (Yes/No/QUIT)?", "WARNING")
+                    for cmd in command_dict["cmd"]: colourPrint(cmd, "OKGREEN")
+                    colourPrint("Run command(s) (Yes/No/QUIT)?", "WARNING")
                     run = input("> ")
                     if run[0].lower() == "y":
                         output.append(["COMMAND(S):"] + command_dict["cmd"] + ["OUTPUT(S):"] + executeCommand(command_dict))

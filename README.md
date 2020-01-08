@@ -59,7 +59,8 @@ optional arguments:
   --post [code [code ...]]
                         runs exec(code) for each line of code after execution,
                         beware of side effects
-  -p int                number of processes (be careful!)
+  -p int                number of processes
+  --interactive         prompt the user before executing each command
   -n, --norun           prints commands without executing them
   -v, --verbose         prints commands
   -w, --csv             writes results to pyxargs-<yymmdd-hhmmss>.csv in
