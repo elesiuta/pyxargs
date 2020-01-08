@@ -55,7 +55,7 @@ def safePrint(string):
 
 def writeCsv(args, file_dir, data, enc=None, delimiter=","):
     if args.csv:
-        file_name = "pyxargs" + datetime.datetime.now().strftime("%y%m%d-%H%M%S") + ".csv"
+        file_name = "pyxargs-" + datetime.datetime.now().strftime("%y%m%d-%H%M%S") + ".csv"
         file_path = os.path.join(file_dir, file_name)
         with open(file_path, "w", newline="", encoding=enc, errors="backslashreplace") as f:
             writer = csv.writer(f, delimiter=delimiter)
