@@ -212,7 +212,9 @@ def main():
     parser.add_argument("--post", nargs="*", type=str, default=[], metavar=("code"),
                         help="runs exec(code) for each line of code after execution, beware of side effects")
     parser.add_argument("-p", action="store", type=int, default=1, metavar="int",
-                        help="number of processes (be careful!)")
+                        help="number of processes")
+    parser.add_argument("--interactive", action="store_true",
+                        help="prompt the user before executing each command")
     parser.add_argument("-n", "--norun", action="store_true",
                         help="prints commands without executing them")
     parser.add_argument("-v", "--verbose", action="store_true",
@@ -223,7 +225,11 @@ def main():
                         help="print example usage")
     args = parser.parse_args()
     # check for any argument combination known to cause issues
-    if (not os.path.isdir(args.d)) or (args.p <= 0) or (args.null and args.delim is not None) or (args.py and args.pyev):
+    if ((not os.path.isdir(args.d)) or
+        (args.p <= 0) or
+        (args.null and args.delim is not None) or
+        (args.py and args.pyev) or
+        (args.p > 1 and args.interactive)):
         colourPrint("Invalid argument(s): %s" % (args), "FAIL")
         sys.exit(0)
     # process commands
@@ -289,8 +295,21 @@ def main():
             exec(line, globals(), user_namespace)
         # execute commands
         if args.p == 1:
-            for command_dict in command_dicts:
-                output.append(["COMMAND(S):"] + command_dict["cmd"] + ["OUTPUT(S):"] + executeCommand(command_dict))
+            if args.interactive:
+                for command_dict in command_dicts:
+                    for cmd in command_dict["cmd"]:
+                        safePrint(cmd)
+                    colourPrint("Run command (Yes/No/QUIT)?", "WARNING")
+                    run = input("> ")
+                    if run[0].lower() == "y":
+                        output.append(["COMMAND(S):"] + command_dict["cmd"] + ["OUTPUT(S):"] + executeCommand(command_dict))
+                    elif run[0].lower() == "n":
+                        output.append(["COMMAND(S):"] + command_dict["cmd"] + ["OUTPUT(S):"] + ["SKIPPED"])
+                    else:
+                        sys.exit(0)
+            else:
+                for command_dict in command_dicts:
+                    output.append(["COMMAND(S):"] + command_dict["cmd"] + ["OUTPUT(S):"] + executeCommand(command_dict))
         elif args.p > 1:
             with multiprocessing.Pool(args.p) as pool:
                 async_result = pool.map_async(executeCommand, command_dicts)
