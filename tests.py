@@ -2,6 +2,16 @@ import unittest
 import os
 
 class TestPyxargs(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        file_content = ["Hello\n", "World\n", "192.168.0.1\n"]
+        with open("test.txt", "w") as f:
+            f.writelines(file_content)
+
+    @classmethod
+    def tearDownClass(cls):
+        os.remove("test.txt")
+
     def test_stdin(self):
         cmd = "echo hello world | python pyxargs.py -m stdin \"echo out {}\""
         with os.popen(cmd) as result:
@@ -159,7 +169,4 @@ class TestPyxargs(unittest.TestCase):
             self.assertListEqual(result, solution)
 
 if __name__ == '__main__':
-    file_content = ["Hello\n", "World\n", "192.168.0.1\n"]
-    with open("test.txt", "w") as f:
-        f.writelines(file_content)
     unittest.main()
