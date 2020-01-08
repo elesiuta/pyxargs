@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="pyxargs",
-    version="0.11.1",
+    version="1.0.0",
     description="A mostly complete implementation of xargs in python with some added features",
     long_description=long_description,
     long_description_content_type="text/markdown",
