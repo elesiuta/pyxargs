@@ -16,7 +16,7 @@ optional arguments:
   -s                    support for multiple commands to be run sequentially
                         by encapsulating each in quotes
   -d base-directory     default: os.getcwd()
-  -m mode               options are:
+  -m input-mode         options are:
                         file    = build commands from filenames and execute in
                                   each subdirectory respectively (default)
                         path    = build commands from file paths relative to
@@ -47,10 +47,10 @@ optional arguments:
                         beware of side effects
   --pyev                evaluates command(s) as python expression(s) using
                         eval()
-  --imprt [library [library ...]]
+  --import [library [library ...]]
                         runs exec("import " + library) on each library, beware
                         of side effects
-  --imprtstar [library [library ...]]
+  --importstar [library [library ...]]
                         runs exec("from " + library + " import *") on each
                         library, beware of side effects
   --pre [code [code ...]]

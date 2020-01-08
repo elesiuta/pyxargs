@@ -169,7 +169,7 @@ def main():
                         help="support for multiple commands to be run sequentially by encapsulating each in quotes")
     parser.add_argument("-d", type=str, default=os.getcwd(), metavar="base-directory",
                         help="default: os.getcwd()")
-    parser.add_argument("-m", type=str, default="file", metavar="mode", choices=['file', 'path', 'abspath', 'dir', 'stdin'],
+    parser.add_argument("-m", type=str, default="file", metavar="input-mode", choices=['file', 'path', 'abspath', 'dir', 'stdin'],
                         help="F!\n"
                              "options are:\n"
                              "file    = build commands from filenames and execute in\n"
@@ -203,9 +203,9 @@ def main():
                         help="executes command(s) as python code using exec(), beware of side effects")
     parser.add_argument("--pyev", action="store_true",
                         help="evaluates command(s) as python expression(s) using eval()")
-    parser.add_argument("--imprt", nargs="*", type=str, default=[], metavar=("library"),
+    parser.add_argument("--import", nargs="*", type=str, default=[], metavar=("library"), dest="imprt",
                         help="runs exec(\"import \" + library) on each library, beware of side effects")
-    parser.add_argument("--imprtstar", nargs="*", type=str, default=[], metavar=("library"),
+    parser.add_argument("--importstar", nargs="*", type=str, default=[], metavar=("library"), dest="imprtstar",
                         help="runs exec(\"from \" + library + \" import *\") on each library, beware of side effects")
     parser.add_argument("--pre", nargs="*", type=str, default=[], metavar=("code"),
                         help="runs exec(code) for each line of code before execution, beware of side effects")
