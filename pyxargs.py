@@ -53,11 +53,14 @@ def safePrint(string):
     print(replaceSurrogates(string))
 
 
-def writeCsv(fName, data, enc=None, delimiter=","):
-    with open(fName, "w", newline="", encoding=enc, errors="backslashreplace") as f:
-        writer = csv.writer(f, delimiter=delimiter)
-        for row in data:
-            writer.writerow(row)
+def writeCsv(args, file_dir, data, enc=None, delimiter=","):
+    if args.csv:
+        file_name = "pyxargs" + datetime.datetime.now().strftime("%y%m%d-%H%M%S") + ".csv"
+        file_path = os.path.join(file_dir, file_name)
+        with open(file_path, "w", newline="", encoding=enc, errors="backslashreplace") as f:
+            writer = csv.writer(f, delimiter=delimiter)
+            for row in data:
+                writer.writerow(row)
 
 
 def buildCommand(dir_name, file_name, arg_input, args):
@@ -319,9 +322,7 @@ def main():
         for line in args.post:
             exec(line, globals(), user_namespace)
         # write csv
-        if args.csv:
-            file_name = "pyxargs" + datetime.datetime.now().strftime("%y%m%d-%H%M%S") + ".csv"
-            writeCsv(os.path.join(start_dir, file_name), output)
+        writeCsv(args, start_dir, output)
     # no commands given, print examples or usage
     elif args.examples:
         print(examples)
