@@ -304,9 +304,9 @@ def main():
                     for cmd in command_dict["cmd"]: colourPrint(cmd, "OKGREEN")
                     colourPrint("Run command(s) (Yes/No/QUIT)?", "WARNING")
                     run = input("> ")
-                    if run[0].lower() == "y":
+                    if len(run) >= 1 and run[0].lower() == "y":
                         output.append(["COMMAND(S):"] + command_dict["cmd"] + ["OUTPUT(S):"] + executeCommand(command_dict))
-                    elif run[0].lower() == "n":
+                    elif len(run) >= 1 and run[0].lower() == "n":
                         output.append(["COMMAND(S):"] + command_dict["cmd"] + ["OUTPUT(S):"] + ["SKIPPED"])
                     else:
                         writeCsv(args, start_dir, output)
