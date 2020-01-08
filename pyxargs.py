@@ -49,7 +49,7 @@ def writeCsv(fName, data, enc=None, delimiter=","):
 
 def buildCommand(dir_name, file_name, arg_input, args):
     # mode
-    if arg_input == None:
+    if arg_input is None:
         if args.m == "file":
             arg_input = file_name
         elif args.m == "dir":
@@ -60,16 +60,16 @@ def buildCommand(dir_name, file_name, arg_input, args):
         elif args.m == "abspath":
             arg_input = os.path.join(dir_name, file_name)
     # check re match
-    if not args.f and dir_name != None and file_name != None:
+    if not args.f and dir_name is not None and file_name is not None:
         relpath = os.path.join(dir_name, file_name)
         relpath = os.path.relpath(relpath, args.d)
-        if (re.search(args.r, relpath) != None) == args.o:
+        if (re.search(args.r, relpath) is not None) == args.o:
             return None
-    elif args.f and file_name != None:
-        if (re.search(args.r, file_name) != None) == args.o:
+    elif args.f and file_name is not None:
+        if (re.search(args.r, file_name) is not None) == args.o:
             return None
     else:
-        if (re.search(args.r, arg_input) != None) == args.o:
+        if (re.search(args.r, arg_input) is not None) == args.o:
             return None
     # interpret command(s)
     if args.s:
@@ -77,7 +77,7 @@ def buildCommand(dir_name, file_name, arg_input, args):
     else:
         command = [" ".join(args.command)]
     # re.sub input into command
-    if args.resub != None:
+    if args.resub is not None:
         for i in range(len(command)):
             command[i] = command[i].replace(args.resub[2], re.sub(args.resub[0], args.resub[1], arg_input))
     # sub input into command
@@ -211,7 +211,7 @@ def main():
                         help="print example usage")
     args = parser.parse_args()
     # check for any argument combination known to cause issues
-    if (not os.path.isdir(args.d)) or (args.p <= 0) or (args.null and args.delim != None) or (args.py and args.pyev):
+    if (not os.path.isdir(args.d)) or (args.p <= 0) or (args.null and args.delim is not None) or (args.py and args.pyev):
         colourPrint("Invalid argument(s): %s" % (args), "FAIL")
         sys.exit(0)
     # process commands
@@ -221,18 +221,18 @@ def main():
         command_dicts = []
         output = []
         # build commands using standard input mode or by walking the directory tree
-        if args.m == "stdin" or args.null or args.delim != None or args.a != None:
+        if args.m == "stdin" or args.null or args.delim is not None or args.a is not None:
             args.m = "stdin"
             # set seperator
             seperator = None
             if args.null:
                 seperator = "\0"
-            elif args.delim != None:
+            elif args.delim is not None:
                 seperator = args.delim
             # read input from stdin or file
-            if args.a == None:
+            if args.a is None:
                 # stdin
-                if args.delim != None:
+                if args.delim is not None:
                     stdin = sys.stdin.read().rstrip()
                 else:
                     stdin = sys.stdin.read()
@@ -240,7 +240,7 @@ def main():
             elif os.path.isfile(args.a):
                 # file
                 with open(args.a, "r") as f:
-                    if seperator == None:
+                    if seperator is None:
                         arg_input_list = f.readlines()
                     else:
                         arg_input_list = f.read().split(seperator)
@@ -251,7 +251,7 @@ def main():
             # build commands from input
             for arg_input in arg_input_list:
                 command = buildCommand(None, None, arg_input, args)
-                if command != None:
+                if command is not None:
                     command_dicts.append({"args": args, "dir": base_dir, "cmd": command})
         elif args.m in ['file', 'path', 'abspath', 'dir']:
             # silly walk
@@ -260,13 +260,13 @@ def main():
                 if args.m == "dir":
                     # build commands from directory names
                     command = buildCommand(dir_path, None, None, args)
-                    if command != None:
+                    if command is not None:
                         command_dicts.append({"args": args, "dir": dir_path, "cmd": command})
                 elif args.m in ["file", "path", "abspath"]:
                     # build commands from filenames or file paths
                     for f in sorted(file_list):
                         command = buildCommand(dir_path, f, None, args)
-                        if command != None:
+                        if command is not None:
                             command_dicts.append({"args": args, "dir": dir_path, "cmd": command})
         # pre execution tasks
         for i in args.imprt:
