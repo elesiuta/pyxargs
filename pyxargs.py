@@ -308,6 +308,7 @@ def main():
                     elif run[0].lower() == "n":
                         output.append(["COMMAND(S):"] + command_dict["cmd"] + ["OUTPUT(S):"] + ["SKIPPED"])
                     else:
+                        writeCsv(args, start_dir, output)
                         sys.exit(0)
             else:
                 for command_dict in command_dicts:
