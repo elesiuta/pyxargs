@@ -1,9 +1,9 @@
 # pyxargs
 
 ```
-usage: pyxargs.py [options] [command [initial-arguments...]]
-       pyxargs.py [options] -s "[command [initial-arguments...]]"...
-       pyxargs.py -h | --help | --examples
+usage: pyxargs [options] [command [initial-arguments...]]
+       pyxargs [options] -s "[command [initial-arguments...]]"...
+       pyxargs -h | --help | --examples
 
 Build and execute command lines or python code from standard input or file
 paths, a mostly complete implementation of xargs in python with some added
