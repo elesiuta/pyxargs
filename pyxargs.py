@@ -258,6 +258,8 @@ def main():
         (args.p > 1 and args.interactive)):
         colourPrint("Invalid argument(s): %s" % (args), "FAIL")
         sys.exit(0)
+    if len(args.command) >= 1 and args.command[0] == "--":
+        _ = args.command.pop(0)
     # process commands
     if len(args.command) >= 1:
         base_dir = args.d
