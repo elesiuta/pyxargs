@@ -162,15 +162,26 @@ def main():
         find ./ -name "*" -type f -print0 | pyxargs -0 echo {}
         pyxargs -m path echo ./{}
         pyxargs -m path --py "print('./{}')"
-    use -- to separate options with multiple arguments from the command
-        pyxargs -m path --pre "print('spam')" "print('spam')" -- echo ./{}
+
+    use -- to separate options with multiple optional arguments from the command
+        pyxargs --pre "print('spam')" "print('spam')" -- echo {}
     or change the order of options (they are parsed with argparse)
-        pyxargs -m path echo ./{} --pre "print('this can go here')"
-        pyxargs -m path --pre "print('this is fine too')" -p 1 echo ./{}
+        pyxargs --pre "print('this is fine too')" -p 1 echo {}
+    the command takes all remaining arguments, so this will not work
+        pyxargs echo {} --pre "print('this statement will be echoed')"
+    however pipes and redirects still work
+        pyxargs echo {} > spam.txt
+
     multiple commands can be used as such
-        pyxargs -m path -s "echo No 1. {}" "echo And now... No 2. {}"
+        pyxargs -s "echo No 1. {}" "echo And now... No 2. {}"
+
+    regular expressions can be used to filter and modify inputs
+        pyxargs -r py --resub py txt {} echo {}
+    the original inputs can easily be used with the subsituted versions
+        pyxargs -r py --resub py txt new echo {}  new
+
     and now for something completely different
-        pyxargs -m path --pre "n=0" --post "print(n,'files')" --py "n+=1"
+        pyxargs --pre "n=0" --post "print(n,'files')" --py "n+=1"
     a best effort is made to avoid side effects by executing in its own namespace
     """)
     parser = argparse.ArgumentParser(description=readme,
@@ -178,7 +189,7 @@ def main():
                                      usage="%(prog)s [options] command [initial-arguments ...]\n"
                                            "       %(prog)s [options] -s \"command [initial-arguments ...]\" ...\n"
                                            "       %(prog)s -h | --help | --examples")
-    parser.add_argument("command", action="store", type=str, nargs="*",
+    parser.add_argument("command", action="store", type=str, nargs=argparse.REMAINDER,
                         help=argparse.SUPPRESS)
     parser.add_argument("--examples", action="store_true",
                         help="print example usage")
