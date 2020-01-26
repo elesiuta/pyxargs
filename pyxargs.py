@@ -18,6 +18,7 @@ import csv
 import sys
 import argparse
 import datetime
+import textwrap
 import multiprocessing
 
 
@@ -154,23 +155,32 @@ def main():
               "a mostly complete implementation of xargs in python with some added features. "
               "The default input mode (file) builds commands using filenames only and executes them in their respective directories, "
               "this is useful when dealing with file paths containing multiple character encodings.")
-    examples = """
+    examples = textwrap.dedent("""
     comparing usage with find | xargs
-    find ./ -name "*" -type f -print0 | xargs -0 -I {} echo {}
-    find ./ -name "*" -type f -print0 | pyxargs -0 -I {} echo {}
-    find ./ -name "*" -type f -print0 | pyxargs -0 echo {}
-    pyxargs -m path echo ./{}
-    pyxargs -m path --py "print('./{}')"
-    """
+        find ./ -name "*" -type f -print0 | xargs -0 -I {} echo {}
+        find ./ -name "*" -type f -print0 | pyxargs -0 -I {} echo {}
+        find ./ -name "*" -type f -print0 | pyxargs -0 echo {}
+        pyxargs -m path echo ./{}
+        pyxargs -m path --py "print('./{}')"
+    use -- to separate options with multiple arguments fom your command
+        pyxargs -m path --pre "print('separate with --')" -- echo ./{}
+    or change the order of options (they are parsed with argparse)
+        pyxargs -m path echo ./{} --pre "print('this can go here')"
+        pyxargs -m path --pre "print('this is fine too')" -p 1 echo ./{}
+    you can use multiple commands as such
+        pyxargs -m path -s "echo No 1. {}" "echo And now... No 2. {}"
+    """)
     parser = argparse.ArgumentParser(description=readme,
                                      formatter_class=lambda prog: ArgparseCustomFormatter(prog, max_help_position=24),
-                                     usage="%(prog)s [options] [command [initial-arguments ...]]\n"
-                                           "       %(prog)s [options] -s \"[command [initial-arguments ...]]\" ...\n"
+                                     usage="%(prog)s [options] command [initial-arguments ...]\n"
+                                           "       %(prog)s [options] -s \"command [initial-arguments ...]\" ...\n"
                                            "       %(prog)s -h | --help | --examples")
     parser.add_argument("command", action="store", type=str, nargs="*",
                         help=argparse.SUPPRESS)
+    parser.add_argument("--examples", action="store_true",
+                        help="print example usage")
     parser.add_argument("-s", action="store_true",
-                        help="support for multiple commands to be run sequentially by encapsulating each in quotes")
+                        help="support for multiple commands to be run sequentially by encapsulating in quotes (each its own string)")
     parser.add_argument("-d", type=str, default=os.getcwd(), metavar="base-directory",
                         help="default: os.getcwd()")
     parser.add_argument("-m", type=str, default="file", metavar="input-mode", choices=['file', 'path', 'abspath', 'dir', 'stdin'],
@@ -211,9 +221,9 @@ def main():
                         help="runs exec(\"import \" + library) on each library, beware of side effects")
     parser.add_argument("--importstar", nargs="+", type=str, default=[], metavar=("library"), dest="imprtstar",
                         help="runs exec(\"from \" + library + \" import *\") on each library, beware of side effects")
-    parser.add_argument("--pre", nargs="+", type=str, default=[], metavar=("code"),
+    parser.add_argument("--pre", nargs="+", type=str, default=[], metavar=("\"code\""),
                         help="runs exec(code) for each line of code before execution, beware of side effects")
-    parser.add_argument("--post", nargs="+", type=str, default=[], metavar=("code"),
+    parser.add_argument("--post", nargs="+", type=str, default=[], metavar=("\"code\""),
                         help="runs exec(code) for each line of code after execution, beware of side effects")
     parser.add_argument("-p", action="store", type=int, default=1, metavar="int",
                         help="number of processes")
@@ -225,8 +235,6 @@ def main():
                         help="prints commands")
     parser.add_argument("-w", "--csv", action="store_true",
                         help="writes results to pyxargs-<yymmdd-hhmmss>.csv in os.getcwd()")
-    parser.add_argument("--examples", action="store_true",
-                        help="print example usage")
     args = parser.parse_args()
     # check for any argument combination known to cause issues
     if ((not os.path.isdir(args.d)) or

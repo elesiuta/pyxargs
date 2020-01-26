@@ -1,8 +1,8 @@
 # pyxargs
 
 ```
-usage: pyxargs [options] [command [initial-arguments ...]]
-       pyxargs [options] -s "[command [initial-arguments ...]]" ...
+usage: pyxargs [options] command [initial-arguments ...]
+       pyxargs [options] -s "command [initial-arguments ...]" ...
        pyxargs -h | --help | --examples
 
 Build and execute command lines or python code from standard input or file
@@ -13,8 +13,9 @@ with file paths containing multiple character encodings.
 
 optional arguments:
   -h, --help            show this help message and exit
+  --examples            print example usage
   -s                    support for multiple commands to be run sequentially
-                        by encapsulating each in quotes
+                        by encapsulating in quotes (each its own string)
   -d base-directory     default: os.getcwd()
   -m input-mode         options are:
                         file    = build commands from filenames and execute in
@@ -53,10 +54,10 @@ optional arguments:
   --importstar library [library ...]
                         runs exec("from " + library + " import *") on each
                         library, beware of side effects
-  --pre code [code ...]
+  --pre "code" ["code" ...]
                         runs exec(code) for each line of code before
                         execution, beware of side effects
-  --post code [code ...]
+  --post "code" ["code" ...]
                         runs exec(code) for each line of code after execution,
                         beware of side effects
   -p int                number of processes
@@ -65,5 +66,4 @@ optional arguments:
   -v, --verbose         prints commands
   -w, --csv             writes results to pyxargs-<yymmdd-hhmmss>.csv in
                         os.getcwd()
-  --examples            print example usage
 ```
