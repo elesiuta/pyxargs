@@ -156,19 +156,22 @@ def main():
               "The default input mode (file) builds commands using filenames only and executes them in their respective directories, "
               "this is useful when dealing with file paths containing multiple character encodings.")
     examples = textwrap.dedent("""
-    comparing usage with find | xargs
+    comparing usage with find & xargs
         find ./ -name "*" -type f -print0 | xargs -0 -I {} echo {}
         find ./ -name "*" -type f -print0 | pyxargs -0 -I {} echo {}
         find ./ -name "*" -type f -print0 | pyxargs -0 echo {}
         pyxargs -m path echo ./{}
         pyxargs -m path --py "print('./{}')"
-    use -- to separate options with multiple arguments fom your command
-        pyxargs -m path --pre "print('separate with --')" -- echo ./{}
+    use -- to separate options with multiple arguments from the command
+        pyxargs -m path --pre "print('spam')" "print('spam')" -- echo ./{}
     or change the order of options (they are parsed with argparse)
         pyxargs -m path echo ./{} --pre "print('this can go here')"
         pyxargs -m path --pre "print('this is fine too')" -p 1 echo ./{}
-    you can use multiple commands as such
+    multiple commands can be used as such
         pyxargs -m path -s "echo No 1. {}" "echo And now... No 2. {}"
+    and now for something completely different
+        pyxargs -m path --pre "n=0" --post "print(n,'files')" --py "n+=1"
+    a best effort is made to avoid side effects by executing in its own namespace
     """)
     parser = argparse.ArgumentParser(description=readme,
                                      formatter_class=lambda prog: ArgparseCustomFormatter(prog, max_help_position=24),
