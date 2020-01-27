@@ -189,7 +189,7 @@ def main():
                                      formatter_class=lambda prog: ArgparseCustomFormatter(prog, max_help_position=24),
                                      usage="%(prog)s [options] command [initial-arguments ...]\n"
                                            "       %(prog)s [options] -s \"command [initial-arguments ...]\" ...\n"
-                                           "       %(prog)s -h | --help | --examples")
+                                           "       %(prog)s -h | --help | --examples | --version")
     parser.add_argument("command", action="store", type=str, nargs=argparse.REMAINDER,
                         help=argparse.SUPPRESS)
     parser.add_argument("--examples", action="store_true",
@@ -216,8 +216,10 @@ def main():
                         help="input items are terminated by a null character instead of by whitespace, automatically sets mode = stdin")
     parser.add_argument("-d", "--delim", type=str, metavar="delim", dest="delim",
                         help="input items are terminated by the specified delimiter instead of whitespace and trailing whitespace is removed, automatically sets mode = stdin")
-    parser.add_argument("-a", type=str, metavar="file",
+    parser.add_argument("-a", type=str, metavar="file", dest="file",
                         help="read items from file instead of standard input to build commands, automatically sets mode = stdin")
+    parser.add_argument("-E", type=str, metavar="eof-str", dest="eof_str",
+                        help="experimental")
     parser.add_argument("-r", type=str, default=".", metavar="regex", dest="regex",
                         help="only build commands from inputs matching regex")
     parser.add_argument("-o", action="store_true", dest="regex_omit",
@@ -250,6 +252,8 @@ def main():
                         help="prints commands")
     parser.add_argument("-w", "--csv", action="store_true",
                         help="writes results to pyxargs-<yymmdd-hhmmss>.csv in os.getcwd()")
+    parser.add_argument("--version", action="store_true",
+                        help="print version number")
     args = parser.parse_args()
     # check for any argument combination known to cause issues
     if ((not os.path.isdir(args.base_directory)) or
@@ -268,7 +272,7 @@ def main():
         command_dicts = []
         output = []
         # build commands using standard input mode or by walking the directory tree
-        if args.input_mode == "stdin" or args.null or args.delim is not None or args.a is not None:
+        if args.input_mode == "stdin" or args.null or args.delim is not None or args.file is not None:
             args.input_mode = "stdin"
             # set seperator
             seperator = None
@@ -277,23 +281,25 @@ def main():
             elif args.delim is not None:
                 seperator = args.delim
             # read input from stdin or file
-            if args.a is None:
+            if args.file is None:
                 # stdin
-                if args.delim is not None:
+                if args.eof_str is not None:
+                    stdin = sys.stdin.read().rsplit(args.eof_str, 1)[0]
+                elif args.delim is not None:
                     stdin = sys.stdin.read().rstrip()
                 else:
                     stdin = sys.stdin.read()
                 arg_input_list = stdin.split(seperator)
-            elif os.path.isfile(args.a):
+            elif os.path.isfile(args.file):
                 # file
-                with open(args.a, "r") as f:
+                with open(args.file, "r") as f:
                     if seperator is None:
                         arg_input_list = f.readlines()
                     else:
                         arg_input_list = f.read().split(seperator)
             else:
                 # error
-                colourPrint("Invalid file: %s" % (args.a), "FAIL")
+                colourPrint("Invalid file: %s" % (args.file), "FAIL")
                 sys.exit(0)
             # build commands from input
             for arg_input in arg_input_list:
@@ -353,6 +359,8 @@ def main():
     # no commands given, print examples or usage
     elif args.examples:
         print(examples)
+    elif args.version:
+        print(VERSION)
     else:
         parser.print_usage()
 
