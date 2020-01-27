@@ -22,7 +22,7 @@ import textwrap
 import multiprocessing
 
 
-VERSION = "1.0.9"
+VERSION = "1.1.0"
 user_namespace = {}
 
 
