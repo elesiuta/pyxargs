@@ -66,6 +66,101 @@ def writeCsv(args, file_dir, data, enc=None, delimiter=","):
                 writer.writerow(row)
 
 
+def processInput(args):
+    command_dicts = []
+    # build commands using standard input mode or by walking the directory tree
+    if args.input_mode == "stdin" or args.null or args.delim is not None or args.file is not None or args.eof_str is not None:
+        args.input_mode = "stdin"
+        # set seperator
+        seperator = None
+        if args.null:
+            seperator = "\0"
+        elif args.delim is not None:
+            seperator = args.delim
+        # read input from stdin or file
+        if args.file is None:
+            # stdin
+            if args.eof_str is not None:
+                stdin = sys.stdin.read().split(args.eof_str, 1)[0]
+            elif args.delim is not None:
+                stdin = sys.stdin.read().rstrip()
+            else:
+                stdin = sys.stdin.read()
+            arg_input_list = stdin.split(seperator)
+        elif os.path.isfile(args.file):
+            # file
+            with open(args.file, "r") as f:
+                if args.eof_str is not None:
+                    arg_input_list = f.read().split(args.eof_str, 1)[0].splitlines()
+                elif seperator is None:
+                    arg_input_list = f.readlines()
+                else:
+                    arg_input_list = f.read().split(seperator)
+        else:
+            # error
+            colourPrint("Invalid file: %s" % (args.file), "FAIL")
+            sys.exit(0)
+        # build commands from input
+        for arg_input in arg_input_list:
+            command = buildCommand(None, None, arg_input, args)
+            if command is not None:
+                command_dicts.append({"args": args, "dir": args.base_dir, "cmd": command})
+    elif args.input_mode in ['file', 'path', 'abspath', 'dir']:
+        # silly walk
+        for dir_path, subdir_list, file_list in os.walk(args.base_dir):
+            subdir_list.sort()
+            if args.input_mode == "dir":
+                # build commands from directory names
+                command = buildCommand(dir_path, None, None, args)
+                if command is not None:
+                    command_dicts.append({"args": args, "dir": dir_path, "cmd": command})
+            elif args.input_mode in ["file", "path", "abspath"]:
+                # build commands from filenames or file paths
+                for f in sorted(file_list):
+                    command = buildCommand(dir_path, f, None, args)
+                    if command is not None:
+                        command_dicts.append({"args": args, "dir": dir_path, "cmd": command})
+    return command_dicts
+
+
+def processCommands(start_dir, command_dicts, args):
+    output = []
+    # pre execution tasks
+    for i in args.imprt:
+        exec("import " + i, globals(), user_namespace)
+    for i in args.imprtstar:
+        exec("from " + i + " import *", globals(), user_namespace)
+    for line in args.pre:
+        exec(line, globals(), user_namespace)
+    # execute commands
+    if args.max_procs == 1:
+        if args.interactive:
+            for command_dict in command_dicts:
+                for cmd in command_dict["cmd"]: colourPrint(cmd, "OKGREEN")
+                colourPrint("Run command(s) (Yes/No/QUIT)?", "WARNING")
+                run = input("> ")
+                if len(run) >= 1 and run[0].lower() == "y":
+                    output.append(["COMMAND(S):"] + command_dict["cmd"] + ["OUTPUT(S):"] + executeCommand(command_dict))
+                elif len(run) >= 1 and run[0].lower() == "n":
+                    output.append(["COMMAND(S):"] + command_dict["cmd"] + ["OUTPUT(S):"] + ["SKIPPED"])
+                else:
+                    writeCsv(args, start_dir, output)
+                    sys.exit(0)
+        else:
+            for command_dict in command_dicts:
+                output.append(["COMMAND(S):"] + command_dict["cmd"] + ["OUTPUT(S):"] + executeCommand(command_dict))
+    elif args.max_procs > 1:
+        with multiprocessing.Pool(args.max_procs) as pool:
+            async_result = pool.map_async(executeCommand, command_dicts)
+            results = async_result.get()
+        for i in range(len(command_dicts)):
+            output.append(["COMMAND(S):"] + command_dicts[i]["cmd"] + ["OUTPUT(S):"] + results[i])
+    # post execution tasks
+    for line in args.post:
+        exec(line, globals(), user_namespace)
+    return output
+
+
 def buildCommand(dir_name, file_name, arg_input, args):
     # mode
     if arg_input is None:
@@ -75,13 +170,13 @@ def buildCommand(dir_name, file_name, arg_input, args):
             arg_input = dir_name
         elif args.input_mode == "path":
             arg_input = os.path.join(dir_name, file_name)
-            arg_input = os.path.relpath(arg_input, args.base_directory)
+            arg_input = os.path.relpath(arg_input, args.base_dir)
         elif args.input_mode == "abspath":
             arg_input = os.path.join(dir_name, file_name)
     # check re match
     if not args.regex_fname and dir_name is not None and file_name is not None:
         relpath = os.path.join(dir_name, file_name)
-        relpath = os.path.relpath(relpath, args.base_directory)
+        relpath = os.path.relpath(relpath, args.base_dir)
         if (re.search(args.regex, relpath) is not None) == args.regex_omit:
             return None
     elif args.regex_fname and file_name is not None:
@@ -202,7 +297,7 @@ def main():
                         help="print example usage")
     parser.add_argument("-s", action="store_true", dest="command_strings",
                         help="support for multiple commands to be run sequentially by encapsulating in quotes (each its own string)")
-    parser.add_argument("-b", type=str, default=os.getcwd(), metavar="base-directory", dest="base_directory",
+    parser.add_argument("-b", type=str, default=os.getcwd(), metavar="base-directory", dest="base_dir",
                         help="default: os.getcwd()")
     parser.add_argument("-m", type=str, default="file", metavar="input-mode", choices=['file', 'path', 'abspath', 'dir', 'stdin'], dest="input_mode",
                         help="F!\n"
@@ -264,7 +359,7 @@ def main():
                         help="print version number")
     args = parser.parse_args()
     # check for any argument combination known to cause issues
-    if ((not os.path.isdir(args.base_directory)) or
+    if ((not os.path.isdir(args.base_dir)) or
         (args.max_procs <= 0) or
         (args.null and args.delim is not None) or
         (args.py and args.pyev) or
@@ -273,98 +368,11 @@ def main():
         sys.exit(0)
     if len(args.command) >= 1 and args.command[0] == "--":
         _ = args.command.pop(0)
-    # process commands
+    # build and run commands
     if len(args.command) >= 1:
-        base_dir = args.base_directory
         start_dir = os.getcwd()
-        command_dicts = []
-        output = []
-        # build commands using standard input mode or by walking the directory tree
-        if args.input_mode == "stdin" or args.null or args.delim is not None or args.file is not None or args.eof_str is not None:
-            args.input_mode = "stdin"
-            # set seperator
-            seperator = None
-            if args.null:
-                seperator = "\0"
-            elif args.delim is not None:
-                seperator = args.delim
-            # read input from stdin or file
-            if args.file is None:
-                # stdin
-                if args.eof_str is not None:
-                    stdin = sys.stdin.read().split(args.eof_str, 1)[0]
-                elif args.delim is not None:
-                    stdin = sys.stdin.read().rstrip()
-                else:
-                    stdin = sys.stdin.read()
-                arg_input_list = stdin.split(seperator)
-            elif os.path.isfile(args.file):
-                # file
-                with open(args.file, "r") as f:
-                    if args.eof_str is not None:
-                        arg_input_list = f.read().split(args.eof_str, 1)[0].splitlines()
-                    elif seperator is None:
-                        arg_input_list = f.readlines()
-                    else:
-                        arg_input_list = f.read().split(seperator)
-            else:
-                # error
-                colourPrint("Invalid file: %s" % (args.file), "FAIL")
-                sys.exit(0)
-            # build commands from input
-            for arg_input in arg_input_list:
-                command = buildCommand(None, None, arg_input, args)
-                if command is not None:
-                    command_dicts.append({"args": args, "dir": base_dir, "cmd": command})
-        elif args.input_mode in ['file', 'path', 'abspath', 'dir']:
-            # silly walk
-            for dir_path, subdir_list, file_list in os.walk(base_dir):
-                subdir_list.sort()
-                if args.input_mode == "dir":
-                    # build commands from directory names
-                    command = buildCommand(dir_path, None, None, args)
-                    if command is not None:
-                        command_dicts.append({"args": args, "dir": dir_path, "cmd": command})
-                elif args.input_mode in ["file", "path", "abspath"]:
-                    # build commands from filenames or file paths
-                    for f in sorted(file_list):
-                        command = buildCommand(dir_path, f, None, args)
-                        if command is not None:
-                            command_dicts.append({"args": args, "dir": dir_path, "cmd": command})
-        # pre execution tasks
-        for i in args.imprt:
-            exec("import " + i, globals(), user_namespace)
-        for i in args.imprtstar:
-            exec("from " + i + " import *", globals(), user_namespace)
-        for line in args.pre:
-            exec(line, globals(), user_namespace)
-        # execute commands
-        if args.max_procs == 1:
-            if args.interactive:
-                for command_dict in command_dicts:
-                    for cmd in command_dict["cmd"]: colourPrint(cmd, "OKGREEN")
-                    colourPrint("Run command(s) (Yes/No/QUIT)?", "WARNING")
-                    run = input("> ")
-                    if len(run) >= 1 and run[0].lower() == "y":
-                        output.append(["COMMAND(S):"] + command_dict["cmd"] + ["OUTPUT(S):"] + executeCommand(command_dict))
-                    elif len(run) >= 1 and run[0].lower() == "n":
-                        output.append(["COMMAND(S):"] + command_dict["cmd"] + ["OUTPUT(S):"] + ["SKIPPED"])
-                    else:
-                        writeCsv(args, start_dir, output)
-                        sys.exit(0)
-            else:
-                for command_dict in command_dicts:
-                    output.append(["COMMAND(S):"] + command_dict["cmd"] + ["OUTPUT(S):"] + executeCommand(command_dict))
-        elif args.max_procs > 1:
-            with multiprocessing.Pool(args.max_procs) as pool:
-                async_result = pool.map_async(executeCommand, command_dicts)
-                results = async_result.get()
-            for i in range(len(command_dicts)):
-                output.append(["COMMAND(S):"] + command_dicts[i]["cmd"] + ["OUTPUT(S):"] + results[i])
-        # post execution tasks
-        for line in args.post:
-            exec(line, globals(), user_namespace)
-        # write csv
+        command_dicts = processInput(args)
+        output = processCommands(start_dir, command_dicts, args)
         writeCsv(args, start_dir, output)
     # no commands given, print examples or usage
     elif args.examples:
