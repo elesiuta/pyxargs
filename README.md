@@ -1,9 +1,9 @@
 # pyxargs
 ## Command Line Interface
 ```
-usage: pyxargs [options] command [initial-arguments ...]
-       pyxargs [options] -s "command [initial-arguments ...]" ...
-       pyxargs -h | --help | --examples
+usage: pyxargs.py [options] command [initial-arguments ...]
+       pyxargs.py [options] -s "command [initial-arguments ...]" ...
+       pyxargs.py -h | --help | --examples | --version
 
 Build and execute command lines or python code from standard input or file
 paths, a mostly complete implementation of xargs in python with some added
@@ -16,7 +16,7 @@ optional arguments:
   --examples            print example usage
   -s                    support for multiple commands to be run sequentially
                         by encapsulating in quotes (each its own string)
-  -d base-directory     default: os.getcwd()
+  -b base-directory     default: os.getcwd()
   -m input-mode         options are:
                         file    = build commands from filenames and execute in
                                   each subdirectory respectively (default)
@@ -30,42 +30,42 @@ optional arguments:
                         stdin   = build commands from standard input and
                                   execute in the base directory
   -0, --null            input items are terminated by a null character instead
-                        of by whitespace, automatically sets mode = stdin
-  --delim char          input items are terminated by the specified delimiter
+                        of by whitespace, sets input-mode=stdin
+  -d delim              input items are terminated by the specified delimiter
                         instead of whitespace and trailing whitespace is
-                        removed, automatically sets mode = stdin
+                        removed, sets input-mode=stdin
   -a file               read items from file instead of standard input to
-                        build commands, automatically sets mode = stdin
-  -r regex              only build commands from inputs matching regex
-  -o                    omit inputs matching regex instead
-  -f                    only match regex to filenames
+                        build commands, sets input-mode=stdin
+  -E eof-str            ignores any input after eof-str, sets input-mode=stdin
+  -c max-chars          omits any command line exceeding max-chars, no limit
+                        by default
   -I replace-str        replace occurrences of replace-str in the command(s)
                         with input, default: {}
   --resub pattern repl replace-str
                         replace occurrences of replace-str in the command(s)
                         with re.sub(patten, repl, input)
-  --py                  executes command(s) as python code using exec(),
-                        beware of side effects
+  -r regex              only build commands from inputs matching regex
+  -o                    omit inputs matching regex instead
+  -f                    only match regex to filenames
+  --py                  executes command(s) as python code using exec()
   --pyev                evaluates command(s) as python expression(s) using
                         eval()
   --import library [library ...]
-                        runs exec("import " + library) on each library, beware
-                        of side effects
+                        executes 'import <library>' for each library
   --importstar library [library ...]
-                        runs exec("from " + library + " import *") on each
-                        library, beware of side effects
+                        executes 'from <library> import *' for each library
   --pre "code" ["code" ...]
-                        runs exec(code) for each line of code before
-                        execution, beware of side effects
+                        runs exec(code) for each line of code before execution
   --post "code" ["code" ...]
-                        runs exec(code) for each line of code after execution,
-                        beware of side effects
-  -p int                number of processes
-  --interactive         prompt the user before executing each command
+                        runs exec(code) for each line of code after execution
+  -P max-procs          number of processes, default: 1
+  -p, --interactive     prompt the user before executing each command, only
+                        proceeds if response starts with 'y' or 'Y'
   -n, --norun           prints commands without executing them
-  -v, --verbose         prints commands
+  -v, --verbose         prints commands before executing them
   -w, --csv             writes results to pyxargs-<yymmdd-hhmmss>.csv in
                         os.getcwd()
+  --version             print version number
 ```
 ## Examples
 ```
@@ -79,7 +79,7 @@ comparing usage with find & xargs
 use -- to separate options with multiple optional arguments from the command
     pyxargs --pre "print('spam')" "print('spam')" -- echo {}
 or separate with another option (they are parsed with argparse)
-    pyxargs --pre "print('this is fine too')" -p 1 echo {}
+    pyxargs --pre "print('this is fine too')" -P 1 echo {}
 the command takes all remaining arguments, so this will not work
     pyxargs echo {} --pre "print('this statement will be echoed')"
 however pipes and redirects still work
@@ -93,8 +93,8 @@ regular expressions can be used to filter and modify inputs
 the original inputs can easily be used with the subsituted versions
     pyxargs -r \.py --resub \.py .txt new echo {} new
 
-and now for something completely different
-    pyxargs --pre "n=0" --post "print(n,'files')" --py "n+=1"
+and now for something completely different, python code
+    pyxargs --pre "n=0" --post "print(n,'files')" --py n+=1
 a best effort is made to avoid side effects by executing in its own namespace
 ```
 ## Links

@@ -282,7 +282,6 @@ def main():
 
     and now for something completely different, python code
         pyxargs --pre "n=0" --post "print(n,'files')" --py n+=1
-        pyxargs --pre "n=0" --post "print(n,'files')" --py -s "n+=1" "n+=1"
     a best effort is made to avoid side effects by executing in its own namespace
     """)
     parser = argparse.ArgumentParser(description=readme,
