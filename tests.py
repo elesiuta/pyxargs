@@ -121,19 +121,19 @@ class TestPyxargs(unittest.TestCase):
             self.assertEqual(result, ['hello\n', 'world\n', 'bye\n', 'world\n'])
 
     def test_pre_post_exec(self):
-        cmd = "echo hello world bye world | python pyxargs.py -m stdin --pre \"counter = 0\" --py -s \"print('{}')\" \"counter += 1\" --post \"print(counter)\""
+        cmd = "echo hello world bye world | python pyxargs.py -m stdin --pre \"counter = 0\" --post \"print(counter)\" --py -s \"print('{}')\" \"counter += 1\""
         with os.popen(cmd) as result:
             result = result.readlines()
             self.assertEqual(result, ['hello\n', 'world\n', 'bye\n', 'world\n', '4\n'])
 
     def test_exec_namespace(self):
-        cmd = "echo hello world bye world | python pyxargs.py -m stdin --pre \"output = 0\" --py -s \"print('{}')\" \"output += 1\" --post \"print(locals())\""
+        cmd = "echo hello world bye world | python pyxargs.py -m stdin --pre \"output = 0\"  --post \"print(locals())\" --py -s \"print('{}')\" \"output += 1\""
         with os.popen(cmd) as result:
             result = result.readlines()
             self.assertEqual(result, ['hello\n', 'world\n', 'bye\n', 'world\n', "{'output': 4}\n"])
 
     def test_import(self):
-        cmd = "echo hello world bye world | python pyxargs.py -m stdin --import math --importstar math --pre \"output = 0\" --py -s \"print('{}')\" \"output += math.sin(pi/2)\" --post \"print(output)\""
+        cmd = "echo hello world bye world | python pyxargs.py -m stdin --import math --importstar math --pre \"output = 0\" --post \"print(output)\" --py -s \"print('{}')\" \"output += math.sin(pi/2)\""
         with os.popen(cmd) as result:
             result = result.readlines()
             self.assertEqual(result, ['hello\n', 'world\n', 'bye\n', 'world\n', '4.0\n'])
