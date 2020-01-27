@@ -285,7 +285,7 @@ def main():
             if args.file is None:
                 # stdin
                 if args.eof_str is not None:
-                    stdin = sys.stdin.read().rsplit(args.eof_str, 1)[0]
+                    stdin = sys.stdin.read().split(args.eof_str, 1)[0]
                 elif args.delim is not None:
                     stdin = sys.stdin.read().rstrip()
                 else:
@@ -295,7 +295,7 @@ def main():
                 # file
                 with open(args.file, "r") as f:
                     if args.eof_str is not None:
-                        arg_input_list = f.read().rsplit(args.eof_str, 1)[0].splitlines()
+                        arg_input_list = f.read().split(args.eof_str, 1)[0].splitlines()
                     elif seperator is None:
                         arg_input_list = f.readlines()
                     else:
