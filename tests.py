@@ -1,9 +1,12 @@
 import unittest
+import shutil
 import os
 
 class TestPyxargs(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        shutil.rmtree("__pycache__", True)
+        shutil.rmtree("pyxargs.egg-info", True)
         file_content = ["Hello\n", "World\n", "192.168.0.1\n"]
         with open("test.txt", "w") as f:
             f.writelines(file_content)
