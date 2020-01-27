@@ -78,7 +78,7 @@ comparing usage with find & xargs
 
 use -- to separate options with multiple optional arguments from the command
     pyxargs --pre "print('spam')" "print('spam')" -- echo {}
-or change the order of options (they are parsed with argparse)
+or separate with another option (they are parsed with argparse)
     pyxargs --pre "print('this is fine too')" -p 1 echo {}
 the command takes all remaining arguments, so this will not work
     pyxargs echo {} --pre "print('this statement will be echoed')"
