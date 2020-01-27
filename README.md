@@ -68,29 +68,35 @@ optional arguments:
                         os.getcwd()
 ```
 ## Examples
-- comparing usage with find & xargs
+```
+comparing usage with find & xargs
     find ./ -name "*" -type f -print0 | xargs -0 -I {} echo {}
     find ./ -name "*" -type f -print0 | pyxargs -0 -I {} echo {}
     find ./ -name "*" -type f -print0 | pyxargs -0 echo {}
     pyxargs -m path echo ./{}
     pyxargs -m path --py "print('./{}')"
-- use -- to separate options with multiple optional arguments from the command
+
+use -- to separate options with multiple optional arguments from the command
     pyxargs --pre "print('spam')" "print('spam')" -- echo {}
-- or change the order of options (they are parsed with argparse)
+or change the order of options (they are parsed with argparse)
     pyxargs --pre "print('this is fine too')" -p 1 echo {}
-- the command takes all remaining arguments, so this will not work
+the command takes all remaining arguments, so this will not work
     pyxargs echo {} --pre "print('this statement will be echoed')"
-- however pipes and redirects still work
+however pipes and redirects still work
     pyxargs echo {} > spam.txt
-- multiple commands can be used as such
+
+multiple commands can be used as such
     pyxargs -s "echo No 1. {}" "echo And now... No 2. {}"
-- regular expressions can be used to filter and modify inputs
+
+regular expressions can be used to filter and modify inputs
     pyxargs -r py --resub py txt {} echo {}
-- the original inputs can easily be used with the subsituted versions
+the original inputs can easily be used with the subsituted versions
     pyxargs -r py --resub py txt new echo {}  new
-- and now for something completely different
+
+and now for something completely different
     pyxargs --pre "n=0" --post "print(n,'files')" --py "n+=1"
-- a best effort is made to avoid side effects by executing in its own namespace
+a best effort is made to avoid side effects by executing in its own namespace
+```
 ## Links
 - https://github.com/elesiuta/pyxargs
 - https://pypi.org/project/pyxargs/
