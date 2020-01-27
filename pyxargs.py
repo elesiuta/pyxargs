@@ -280,8 +280,8 @@ def main():
     the original inputs can easily be used with the subsituted versions
         pyxargs -r \.py --resub \.py .txt new echo {} new
 
-    and now for something completely different
-        pyxargs --pre "n=0" --post "print(n,'files')" --py n += 1
+    and now for something completely different, python code
+        pyxargs --pre "n=0" --post "print(n,'files')" --py n+=1
         pyxargs --pre "n=0" --post "print(n,'files')" --py -s "n+=1" "n+=1"
     a best effort is made to avoid side effects by executing in its own namespace
     """)
@@ -313,15 +313,17 @@ def main():
                              "stdin   = build commands from standard input and\n"
                              "          execute in the base directory")
     parser.add_argument("-0", "--null", action="store_true", dest="null",
-                        help="input items are terminated by a null character instead of by whitespace, automatically sets mode = stdin")
+                        help="input items are terminated by a null character instead of by whitespace, sets input-mode=stdin")
     parser.add_argument("-d", type=str, metavar="delim", dest="delim",
-                        help="input items are terminated by the specified delimiter instead of whitespace and trailing whitespace is removed, automatically sets mode = stdin")
+                        help="input items are terminated by the specified delimiter instead of whitespace and trailing whitespace is removed, sets input-mode=stdin")
     parser.add_argument("-a", type=str, metavar="file", dest="file",
-                        help="read items from file instead of standard input to build commands, automatically sets mode = stdin")
+                        help="read items from file instead of standard input to build commands, sets input-mode=stdin")
     parser.add_argument("-E", type=str, metavar="eof-str", dest="eof_str",
-                        help="ignores any input after eof-str, automatically sets mode = stdin")
+                        help="ignores any input after eof-str, sets input-mode=stdin")
     parser.add_argument("-c", type=int, metavar="max-chars", dest="max_chars",
                         help="omits any command line exceeding max-chars, no limit by default")
+    parser.add_argument("-P", action="store", type=int, default=1, metavar="max-procs", dest="max_procs",
+                        help="number of processes, default: 1")
     parser.add_argument("-r", type=str, default=".", metavar="regex", dest="regex",
                         help="only build commands from inputs matching regex")
     parser.add_argument("-o", action="store_true", dest="regex_omit",
@@ -333,25 +335,23 @@ def main():
     parser.add_argument("--resub", nargs=3, type=str, metavar=("pattern", "repl", "replace-str"),
                         help="replace occurrences of replace-str in the command(s) with re.sub(patten, repl, input)")
     parser.add_argument("--py", action="store_true",
-                        help="executes command(s) as python code using exec(), beware of side effects")
+                        help="executes command(s) as python code using exec()")
     parser.add_argument("--pyev", action="store_true",
                         help="evaluates command(s) as python expression(s) using eval()")
     parser.add_argument("--import", nargs="+", type=str, default=[], metavar=("library"), dest="imprt",
-                        help="runs exec(\"import \" + library) on each library, beware of side effects")
+                        help="executes 'import <library>' for each library")
     parser.add_argument("--importstar", nargs="+", type=str, default=[], metavar=("library"), dest="imprtstar",
-                        help="runs exec(\"from \" + library + \" import *\") on each library, beware of side effects")
+                        help="executes 'from <library> import *' for each library")
     parser.add_argument("--pre", nargs="+", type=str, default=[], metavar=("\"code\""),
-                        help="runs exec(code) for each line of code before execution, beware of side effects")
+                        help="runs exec(code) for each line of code before execution")
     parser.add_argument("--post", nargs="+", type=str, default=[], metavar=("\"code\""),
-                        help="runs exec(code) for each line of code after execution, beware of side effects")
-    parser.add_argument("-P", "--max-procs", action="store", type=int, default=1, metavar="int", dest="max_procs",
-                        help="number of processes, default is 1")
-    parser.add_argument("-p", "--interactive", action="store_true",
+                        help="runs exec(code) for each line of code after execution")
+    parser.add_argument("--interactive", action="store_true",
                         help="prompt the user before executing each command, only proceeds if response starts with 'y' or 'Y'")
     parser.add_argument("-n", "--norun", action="store_true",
                         help="prints commands without executing them")
     parser.add_argument("-v", "--verbose", action="store_true",
-                        help="prints commands")
+                        help="prints commands before executing them")
     parser.add_argument("-w", "--csv", action="store_true",
                         help="writes results to pyxargs-<yymmdd-hhmmss>.csv in os.getcwd()")
     parser.add_argument("--version", action="store_true",
@@ -376,7 +376,7 @@ def main():
         command_dicts = processInput(args)
         output = processCommands(start_dir, command_dicts, args)
         writeCsv(args, start_dir, output)
-    # no commands given, print examples or usage
+    # no commands given, print examples, version, or usage
     elif args.examples:
         print(examples)
     elif args.version:
