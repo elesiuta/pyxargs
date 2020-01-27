@@ -1,11 +1,10 @@
-import unittest
-import shutil
 import os
+import shutil
+import unittest
 
 class TestPyxargs(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        # shutil.rmtree("__pycache__", True)
         shutil.rmtree("pyxargs.egg-info", True)
         file_content = ["Hello\n", "World\n", "192.168.0.1\n"]
         with open("test.txt", "w") as f:
@@ -14,6 +13,7 @@ class TestPyxargs(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         os.remove("test.txt")
+        shutil.rmtree("__pycache__", True)
 
     def test_stdin(self):
         cmd = "echo hello world | python pyxargs.py -m stdin \"echo out {}\""
