@@ -102,6 +102,11 @@ def buildCommand(dir_name, file_name, arg_input, args):
     # sub input into command
     for i in range(len(command)):
         command[i] = command[i].replace(args.replace_str, arg_input)
+    # check length of command(s)
+    if args.max_chars is not None:
+        for c in command:
+            if len(c) > args.max_chars:
+                return None
     # and finally
     return command
 
@@ -221,6 +226,8 @@ def main():
                         help="read items from file instead of standard input to build commands, automatically sets mode = stdin")
     parser.add_argument("-E", type=str, metavar="eof-str", dest="eof_str",
                         help="ignores any input after eof-str, automatically sets mode = stdin")
+    parser.add_argument("-c", type=int, metavar="max-chars", dest="max_chars",
+                        help="omits any command line exceeding max-chars, no limit by default")
     parser.add_argument("-r", type=str, default=".", metavar="regex", dest="regex",
                         help="only build commands from inputs matching regex")
     parser.add_argument("-o", action="store_true", dest="regex_omit",
