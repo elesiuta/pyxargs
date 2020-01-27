@@ -322,18 +322,16 @@ def main():
                         help="ignores any input after eof-str, sets input-mode=stdin")
     parser.add_argument("-c", type=int, metavar="max-chars", dest="max_chars",
                         help="omits any command line exceeding max-chars, no limit by default")
-    parser.add_argument("-P", action="store", type=int, default=1, metavar="max-procs", dest="max_procs",
-                        help="number of processes, default: 1")
+    parser.add_argument("-I", action="store", type=str, default="{}", metavar="replace-str", dest="replace_str",
+                        help="replace occurrences of replace-str in the command(s) with input, default: {}")
+    parser.add_argument("--resub", nargs=3, type=str, metavar=("pattern", "repl", "replace-str"),
+                        help="replace occurrences of replace-str in the command(s) with re.sub(patten, repl, input)")
     parser.add_argument("-r", type=str, default=".", metavar="regex", dest="regex",
                         help="only build commands from inputs matching regex")
     parser.add_argument("-o", action="store_true", dest="regex_omit",
                         help="omit inputs matching regex instead")
     parser.add_argument("-f", action="store_true", dest="regex_fname",
                         help="only match regex to filenames")
-    parser.add_argument("-I", action="store", type=str, default="{}", metavar="replace-str", dest="replace_str",
-                        help="replace occurrences of replace-str in the command(s) with input, default: {}")
-    parser.add_argument("--resub", nargs=3, type=str, metavar=("pattern", "repl", "replace-str"),
-                        help="replace occurrences of replace-str in the command(s) with re.sub(patten, repl, input)")
     parser.add_argument("--py", action="store_true",
                         help="executes command(s) as python code using exec()")
     parser.add_argument("--pyev", action="store_true",
@@ -346,7 +344,9 @@ def main():
                         help="runs exec(code) for each line of code before execution")
     parser.add_argument("--post", nargs="+", type=str, default=[], metavar=("\"code\""),
                         help="runs exec(code) for each line of code after execution")
-    parser.add_argument("--interactive", action="store_true",
+    parser.add_argument("-P", action="store", type=int, default=1, metavar="max-procs", dest="max_procs",
+                        help="number of processes, default: 1")
+    parser.add_argument("-p", "--interactive", action="store_true",
                         help="prompt the user before executing each command, only proceeds if response starts with 'y' or 'Y'")
     parser.add_argument("-n", "--norun", action="store_true",
                         help="prints commands without executing them")
