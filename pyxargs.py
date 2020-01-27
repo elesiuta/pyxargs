@@ -69,8 +69,7 @@ def writeCsv(args, file_dir, data, enc=None, delimiter=","):
 def processInput(args):
     command_dicts = []
     # build commands using standard input mode or by walking the directory tree
-    if args.input_mode == "stdin" or args.null or args.delim is not None or args.file is not None or args.eof_str is not None:
-        args.input_mode = "stdin"
+    if args.input_mode == "stdin":
         # set seperator
         seperator = None
         if args.null:
@@ -368,6 +367,9 @@ def main():
         sys.exit(0)
     if len(args.command) >= 1 and args.command[0] == "--":
         _ = args.command.pop(0)
+    # set arguments implied by others
+    if args.null or args.delim is not None or args.file is not None or args.eof_str is not None:
+        args.input_mode = "stdin"
     # build and run commands
     if len(args.command) >= 1:
         start_dir = os.getcwd()
