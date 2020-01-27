@@ -22,7 +22,7 @@ import textwrap
 import multiprocessing
 
 
-VERSION = "1.1.0"
+VERSION = "1.1.1"
 user_namespace = {}
 
 
@@ -69,29 +69,29 @@ def writeCsv(args, file_dir, data, enc=None, delimiter=","):
 def buildCommand(dir_name, file_name, arg_input, args):
     # mode
     if arg_input is None:
-        if args.m == "file":
+        if args.input_mode == "file":
             arg_input = file_name
-        elif args.m == "dir":
+        elif args.input_mode == "dir":
             arg_input = dir_name
-        elif args.m == "path":
+        elif args.input_mode == "path":
             arg_input = os.path.join(dir_name, file_name)
-            arg_input = os.path.relpath(arg_input, args.d)
-        elif args.m == "abspath":
+            arg_input = os.path.relpath(arg_input, args.base_directory)
+        elif args.input_mode == "abspath":
             arg_input = os.path.join(dir_name, file_name)
     # check re match
-    if not args.f and dir_name is not None and file_name is not None:
+    if not args.regex_fname and dir_name is not None and file_name is not None:
         relpath = os.path.join(dir_name, file_name)
-        relpath = os.path.relpath(relpath, args.d)
-        if (re.search(args.r, relpath) is not None) == args.o:
+        relpath = os.path.relpath(relpath, args.base_directory)
+        if (re.search(args.regex, relpath) is not None) == args.regex_omit:
             return None
-    elif args.f and file_name is not None:
-        if (re.search(args.r, file_name) is not None) == args.o:
+    elif args.regex_fname and file_name is not None:
+        if (re.search(args.regex, file_name) is not None) == args.regex_omit:
             return None
     else:
-        if (re.search(args.r, arg_input) is not None) == args.o:
+        if (re.search(args.regex, arg_input) is not None) == args.regex_omit:
             return None
     # interpret command(s)
-    if args.s:
+    if args.command_strings:
         command = args.command[:]
     else:
         command = [" ".join(args.command)]
@@ -101,7 +101,7 @@ def buildCommand(dir_name, file_name, arg_input, args):
             command[i] = command[i].replace(args.resub[2], re.sub(args.resub[0], args.resub[1], arg_input))
     # sub input into command
     for i in range(len(command)):
-        command[i] = command[i].replace(args.I, arg_input)
+        command[i] = command[i].replace(args.replace_str, arg_input)
     # and finally
     return command
 
@@ -111,7 +111,7 @@ def executeCommand(command_dict):
     dir_name = command_dict["dir"]
     cmds = command_dict["cmd"]
     # mode
-    if args.m in ["file", "stdin"]:
+    if args.input_mode in ["file", "stdin"]:
         os.chdir(dir_name)
     # no run
     if args.norun:
@@ -167,7 +167,7 @@ def main():
     use -- to separate options with multiple optional arguments from the command
         pyxargs --pre "print('spam')" "print('spam')" -- echo {}
     or separate with another option (they are parsed with argparse)
-        pyxargs --pre "print('this is fine too')" -p 1 echo {}
+        pyxargs --pre "print('this is fine too')" -P 1 echo {}
     the command takes all remaining arguments, so this will not work
         pyxargs echo {} --pre "print('this statement will be echoed')"
     however pipes and redirects still work
@@ -194,11 +194,11 @@ def main():
                         help=argparse.SUPPRESS)
     parser.add_argument("--examples", action="store_true",
                         help="print example usage")
-    parser.add_argument("-s", action="store_true",
+    parser.add_argument("-s", action="store_true", dest="command_strings",
                         help="support for multiple commands to be run sequentially by encapsulating in quotes (each its own string)")
-    parser.add_argument("-d", type=str, default=os.getcwd(), metavar="base-directory",
+    parser.add_argument("-b", type=str, default=os.getcwd(), metavar="base-directory", dest="base_directory",
                         help="default: os.getcwd()")
-    parser.add_argument("-m", type=str, default="file", metavar="input-mode", choices=['file', 'path', 'abspath', 'dir', 'stdin'],
+    parser.add_argument("-m", type=str, default="file", metavar="input-mode", choices=['file', 'path', 'abspath', 'dir', 'stdin'], dest="input_mode",
                         help="F!\n"
                              "options are:\n"
                              "file    = build commands from filenames and execute in\n"
@@ -212,19 +212,19 @@ def main():
                              "          of filenames\n"
                              "stdin   = build commands from standard input and\n"
                              "          execute in the base directory")
-    parser.add_argument("-0", "--null", action="store_true",
+    parser.add_argument("-0", "--null", action="store_true", dest="null",
                         help="input items are terminated by a null character instead of by whitespace, automatically sets mode = stdin")
-    parser.add_argument("--delim", type=str, metavar="char",
+    parser.add_argument("-d", "--delim", type=str, metavar="delim", dest="delim",
                         help="input items are terminated by the specified delimiter instead of whitespace and trailing whitespace is removed, automatically sets mode = stdin")
     parser.add_argument("-a", type=str, metavar="file",
                         help="read items from file instead of standard input to build commands, automatically sets mode = stdin")
-    parser.add_argument("-r", type=str, default=".", metavar="regex",
+    parser.add_argument("-r", type=str, default=".", metavar="regex", dest="regex",
                         help="only build commands from inputs matching regex")
-    parser.add_argument("-o", action="store_true",
+    parser.add_argument("-o", action="store_true", dest="regex_omit",
                         help="omit inputs matching regex instead")
-    parser.add_argument("-f", action="store_true",
+    parser.add_argument("-f", action="store_true", dest="regex_fname",
                         help="only match regex to filenames")
-    parser.add_argument("-I", action="store", type=str, default="{}", metavar="replace-str",
+    parser.add_argument("-I", action="store", type=str, default="{}", metavar="replace-str", dest="replace_str",
                         help="replace occurrences of replace-str in the command(s) with input, default: {}")
     parser.add_argument("--resub", nargs=3, type=str, metavar=("pattern", "repl", "replace-str"),
                         help="replace occurrences of replace-str in the command(s) with re.sub(patten, repl, input)")
@@ -240,10 +240,10 @@ def main():
                         help="runs exec(code) for each line of code before execution, beware of side effects")
     parser.add_argument("--post", nargs="+", type=str, default=[], metavar=("\"code\""),
                         help="runs exec(code) for each line of code after execution, beware of side effects")
-    parser.add_argument("-p", action="store", type=int, default=1, metavar="int",
-                        help="number of processes")
-    parser.add_argument("--interactive", action="store_true",
-                        help="prompt the user before executing each command")
+    parser.add_argument("-P", "--max-procs", action="store", type=int, default=1, metavar="int", dest="max_procs",
+                        help="number of processes, default is 1")
+    parser.add_argument("-p", "--interactive", action="store_true",
+                        help="prompt the user before executing each command, only proceeds if response starts with 'y' or 'Y'")
     parser.add_argument("-n", "--norun", action="store_true",
                         help="prints commands without executing them")
     parser.add_argument("-v", "--verbose", action="store_true",
@@ -252,24 +252,24 @@ def main():
                         help="writes results to pyxargs-<yymmdd-hhmmss>.csv in os.getcwd()")
     args = parser.parse_args()
     # check for any argument combination known to cause issues
-    if ((not os.path.isdir(args.d)) or
-        (args.p <= 0) or
+    if ((not os.path.isdir(args.base_directory)) or
+        (args.max_procs <= 0) or
         (args.null and args.delim is not None) or
         (args.py and args.pyev) or
-        (args.p > 1 and args.interactive)):
+        (args.max_procs > 1 and args.interactive)):
         colourPrint("Invalid argument(s): %s" % (args), "FAIL")
         sys.exit(0)
     if len(args.command) >= 1 and args.command[0] == "--":
         _ = args.command.pop(0)
     # process commands
     if len(args.command) >= 1:
-        base_dir = args.d
+        base_dir = args.base_directory
         start_dir = os.getcwd()
         command_dicts = []
         output = []
         # build commands using standard input mode or by walking the directory tree
-        if args.m == "stdin" or args.null or args.delim is not None or args.a is not None:
-            args.m = "stdin"
+        if args.input_mode == "stdin" or args.null or args.delim is not None or args.a is not None:
+            args.input_mode = "stdin"
             # set seperator
             seperator = None
             if args.null:
@@ -300,16 +300,16 @@ def main():
                 command = buildCommand(None, None, arg_input, args)
                 if command is not None:
                     command_dicts.append({"args": args, "dir": base_dir, "cmd": command})
-        elif args.m in ['file', 'path', 'abspath', 'dir']:
+        elif args.input_mode in ['file', 'path', 'abspath', 'dir']:
             # silly walk
             for dir_path, subdir_list, file_list in os.walk(base_dir):
                 subdir_list.sort()
-                if args.m == "dir":
+                if args.input_mode == "dir":
                     # build commands from directory names
                     command = buildCommand(dir_path, None, None, args)
                     if command is not None:
                         command_dicts.append({"args": args, "dir": dir_path, "cmd": command})
-                elif args.m in ["file", "path", "abspath"]:
+                elif args.input_mode in ["file", "path", "abspath"]:
                     # build commands from filenames or file paths
                     for f in sorted(file_list):
                         command = buildCommand(dir_path, f, None, args)
@@ -323,7 +323,7 @@ def main():
         for line in args.pre:
             exec(line, globals(), user_namespace)
         # execute commands
-        if args.p == 1:
+        if args.max_procs == 1:
             if args.interactive:
                 for command_dict in command_dicts:
                     for cmd in command_dict["cmd"]: colourPrint(cmd, "OKGREEN")
@@ -339,8 +339,8 @@ def main():
             else:
                 for command_dict in command_dicts:
                     output.append(["COMMAND(S):"] + command_dict["cmd"] + ["OUTPUT(S):"] + executeCommand(command_dict))
-        elif args.p > 1:
-            with multiprocessing.Pool(args.p) as pool:
+        elif args.max_procs > 1:
+            with multiprocessing.Pool(args.max_procs) as pool:
                 async_result = pool.map_async(executeCommand, command_dicts)
                 results = async_result.get()
             for i in range(len(command_dicts)):
