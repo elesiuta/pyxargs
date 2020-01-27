@@ -5,7 +5,7 @@ import os
 class TestPyxargs(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        shutil.rmtree("__pycache__", True)
+        # shutil.rmtree("__pycache__", True)
         shutil.rmtree("pyxargs.egg-info", True)
         file_content = ["Hello\n", "World\n", "192.168.0.1\n"]
         with open("test.txt", "w") as f:
@@ -40,7 +40,7 @@ class TestPyxargs(unittest.TestCase):
             self.assertEqual(result, ['out1 hello\n', 'out2 hello\n', 'out1 world\n', 'out2 world\n'])
 
     def test_read_files(self):
-        cmd = "python pyxargs.py -r \"\.git\" -o \"echo out {}\""
+        cmd = "python pyxargs.py -r \"(\.git|__pycache__)\" -o \"echo out {}\""
         with os.popen(cmd) as result:
             result = result.readlines()
             self.assertEqual(result, ['out LICENSE\n', 'out README.md\n', 'out pyxargs.py\n', 'out setup.py\n', 'out test.txt\n', 'out tests.py\n'])
@@ -67,13 +67,13 @@ class TestPyxargs(unittest.TestCase):
                 self.assertEqual(result, ['out .git/config\n'])
 
     def test_filter_file_extension(self):
-        cmd = "python pyxargs.py -r \".+\.py\" \"echo out {}\""
+        cmd = "python pyxargs.py -r \".+\.py$\" \"echo out {}\""
         with os.popen(cmd) as result:
             result = result.readlines()
             self.assertEqual(result, ['out pyxargs.py\n', 'out setup.py\n', 'out tests.py\n'])
 
     def test_resub(self):
-        cmd = "python pyxargs.py -r \".+\.py\" --resub \"\.py\" \".txt\" \"{}\" \"echo out {}\""
+        cmd = "python pyxargs.py -r \".+\.py$\" --resub \"\.py\" \".txt\" \"{}\" \"echo out {}\""
         with os.popen(cmd) as result:
             result = result.readlines()
             self.assertEqual(result, ['out pyxargs.txt\n', 'out setup.txt\n', 'out tests.txt\n'])
