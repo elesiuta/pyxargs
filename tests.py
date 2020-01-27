@@ -85,31 +85,31 @@ class TestPyxargs(unittest.TestCase):
             self.assertEqual(result, ['out LICENSE\n', 'out README.md\n', 'out test.txt\n'])
 
     def test_stdin_delimiter(self):
-        cmd = "echo hello,world,bye,world | python pyxargs.py --delim , \"echo out {}\""
+        cmd = "echo hello,world,bye,world | python pyxargs.py -d , \"echo out {}\""
         with os.popen(cmd) as result:
             result = result.readlines()
             self.assertEqual(result, ['out hello\n', 'out world\n', 'out bye\n', 'out world\n'])
 
     def test_stdin_delimiter_py(self):
-        cmd = "echo hello,world,bye,world | python pyxargs.py --delim , --py \"print('{}')\""
+        cmd = "echo hello,world,bye,world | python pyxargs.py -d , --py \"print('{}')\""
         with os.popen(cmd) as result:
             result = result.readlines()
             self.assertEqual(result, ['hello\n', 'world\n', 'bye\n', 'world\n'])
 
     def test_trailing_chars_removed(self):
-        cmd = "echo hello,world,bye,world | python pyxargs.py --delim , --norun --py \"print('{}')\""
+        cmd = "echo hello,world,bye,world | python pyxargs.py -d , --norun --py \"print('{}')\""
         with os.popen(cmd) as result:
             result = result.readlines()
             self.assertEqual(result, ["print('hello')\n", "print('world')\n", "print('bye')\n", "print('world')\n"])
 
     def test_extra_delimiter(self):
-        cmd = "echo hello,world,bye,world , | python pyxargs.py --delim , --py \"print('{}')\""
+        cmd = "echo hello,world,bye,world , | python pyxargs.py -d , --py \"print('{}')\""
         with os.popen(cmd) as result:
             result = result.readlines()
             self.assertEqual(result, ['hello\n', 'world\n', 'bye\n', 'world \n'])
 
     def test_delimiter_space(self):
-        cmd = "echo hello world bye world | python pyxargs.py --delim \" \" --py \"print('{}')\""
+        cmd = "echo hello world bye world | python pyxargs.py -d \" \" --py \"print('{}')\""
         with os.popen(cmd) as result:
             result = result.readlines()
             self.assertEqual(result, ['hello\n', 'world\n', 'bye\n', 'world\n'])

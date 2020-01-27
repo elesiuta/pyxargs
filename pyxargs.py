@@ -182,7 +182,8 @@ def main():
         pyxargs -r \.py --resub \.py .txt new echo {} new
 
     and now for something completely different
-        pyxargs --pre "n=0" --post "print(n,'files')" --py "n+=1"
+        pyxargs --pre "n=0" --post "print(n,'files')" --py n += 1
+        pyxargs --pre "n=0" --post "print(n,'files')" --py -s "n+=1" "n+=1"
     a best effort is made to avoid side effects by executing in its own namespace
     """)
     parser = argparse.ArgumentParser(description=readme,
@@ -214,12 +215,12 @@ def main():
                              "          execute in the base directory")
     parser.add_argument("-0", "--null", action="store_true", dest="null",
                         help="input items are terminated by a null character instead of by whitespace, automatically sets mode = stdin")
-    parser.add_argument("-d", "--delim", type=str, metavar="delim", dest="delim",
+    parser.add_argument("-d", type=str, metavar="delim", dest="delim",
                         help="input items are terminated by the specified delimiter instead of whitespace and trailing whitespace is removed, automatically sets mode = stdin")
     parser.add_argument("-a", type=str, metavar="file", dest="file",
                         help="read items from file instead of standard input to build commands, automatically sets mode = stdin")
     parser.add_argument("-E", type=str, metavar="eof-str", dest="eof_str",
-                        help="experimental")
+                        help="ignores any input after eof-str, automatically sets mode = stdin")
     parser.add_argument("-r", type=str, default=".", metavar="regex", dest="regex",
                         help="only build commands from inputs matching regex")
     parser.add_argument("-o", action="store_true", dest="regex_omit",
@@ -272,7 +273,7 @@ def main():
         command_dicts = []
         output = []
         # build commands using standard input mode or by walking the directory tree
-        if args.input_mode == "stdin" or args.null or args.delim is not None or args.file is not None:
+        if args.input_mode == "stdin" or args.null or args.delim is not None or args.file is not None or args.eof_str is not None:
             args.input_mode = "stdin"
             # set seperator
             seperator = None
@@ -293,7 +294,9 @@ def main():
             elif os.path.isfile(args.file):
                 # file
                 with open(args.file, "r") as f:
-                    if seperator is None:
+                    if args.eof_str is not None:
+                        arg_input_list = f.read().rsplit(args.eof_str, 1)[0].splitlines()
+                    elif seperator is None:
                         arg_input_list = f.readlines()
                     else:
                         arg_input_list = f.read().split(seperator)
