@@ -89,9 +89,9 @@ multiple commands can be used as such
     pyxargs -s "echo No 1. {}" "echo And now... No 2. {}"
 
 regular expressions can be used to filter and modify inputs
-    pyxargs -r py --resub py txt {} echo {}
+    pyxargs -r \.py --resub \.py .txt {} echo {}
 the original inputs can easily be used with the subsituted versions
-    pyxargs -r py --resub py txt new echo {}  new
+    pyxargs -r \.py --resub \.py .txt new echo {} new
 
 and now for something completely different
     pyxargs --pre "n=0" --post "print(n,'files')" --py "n+=1"
