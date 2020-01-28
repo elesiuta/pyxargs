@@ -77,7 +77,7 @@ def processInput(args):
         elif args.delim is not None:
             seperator = args.delim
         # read input from stdin or file
-        if args.file is None:
+        if args.arg_file is None:
             # stdin
             if args.eof_str is not None:
                 stdin = sys.stdin.read().split(args.eof_str, 1)[0]
@@ -86,9 +86,9 @@ def processInput(args):
             else:
                 stdin = sys.stdin.read()
             arg_input_list = stdin.split(seperator)
-        elif os.path.isfile(args.file):
+        elif os.path.isfile(args.arg_file):
             # file
-            with open(args.file, "r") as f:
+            with open(args.arg_file, "r") as f:
                 if args.eof_str is not None:
                     arg_input_list = f.read().split(args.eof_str, 1)[0].splitlines()
                 elif seperator is None:
@@ -97,7 +97,7 @@ def processInput(args):
                     arg_input_list = f.read().split(seperator)
         else:
             # error
-            colourPrint("Invalid file: %s" % (args.file), "FAIL")
+            colourPrint("Invalid file: %s" % (args.arg_file), "FAIL")
             sys.exit(0)
         # build commands from input
         for arg_input in arg_input_list:
@@ -262,7 +262,7 @@ def main():
         find ./ -name "*" -type f -print0 | pyxargs -0 echo {}
         pyxargs -m path echo ./{}
         pyxargs -m path --py "print('./{}')"
-    note: pyxargs requires a replace-str, {} in this example, to be used,
+    note: pyxargs requires a replace-str ({} in this example) to insert inputs,
     inputs are not appended in the absence of a replace-str like in xargs,
     this also implies the equivalent of xargs --max-lines=1
 
@@ -318,8 +318,8 @@ def main():
                         help="input items are terminated by a null character instead of by whitespace, sets input-mode=stdin")
     parser.add_argument("-d", type=str, metavar="delim", dest="delim",
                         help="input items are terminated by the specified delimiter instead of whitespace and trailing whitespace is removed, sets input-mode=stdin")
-    parser.add_argument("-a", type=str, metavar="file", dest="file",
-                        help="read items from file instead of standard input to build commands, sets input-mode=stdin")
+    parser.add_argument("-a", type=str, metavar="arg-file", dest="arg_file",
+                        help="read input items from arg-file instead of standard input to build commands, sets input-mode=stdin")
     parser.add_argument("-E", type=str, metavar="eof-str", dest="eof_str",
                         help="ignores any input after eof-str, sets input-mode=stdin")
     parser.add_argument("-c", type=int, metavar="max-chars", dest="max_chars",
@@ -333,7 +333,7 @@ def main():
     parser.add_argument("-o", action="store_true", dest="regex_omit",
                         help="omit inputs matching regex instead")
     parser.add_argument("-f", action="store_true", dest="regex_fname",
-                        help="only match regex to filenames")
+                        help="only match regex against filenames, ignoring full paths (if available)")
     parser.add_argument("--py", action="store_true",
                         help="executes command(s) as python code using exec()")
     parser.add_argument("--pyev", action="store_true",
@@ -370,7 +370,7 @@ def main():
     if len(args.command) >= 1 and args.command[0] == "--":
         _ = args.command.pop(0)
     # set arguments implied by others
-    if args.null or args.delim is not None or args.file is not None or args.eof_str is not None:
+    if args.null or args.delim is not None or args.arg_file is not None or args.eof_str is not None:
         args.input_mode = "stdin"
     # build and run commands
     if len(args.command) >= 1:

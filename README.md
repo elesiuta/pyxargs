@@ -1,4 +1,10 @@
 # pyxargs
+## Purpose
+This began as a solution to the [encoding problem](https://en.wikipedia.org/wiki/Xargs#Encoding_problem) with [xargs](https://www.gnu.org/software/findutils/manual/html_node/find_html/xargs-options.html) [(additional reference)](http://man7.org/linux/man-pages/man1/xargs.1.html). It eventually grew as I found being able to quickly mix python code with command lines and files to be useful.
+
+Most of xargs functionality has been implemented, however the original focus with fixing the encoding problem via the file input-mode, not to be confused with arg-file, remains. The goal is not to replace xargs but to compliment it for slightly different, and more modern use cases, therefore not all features are included, such as max-lines or max-args.
+
+Going forward development will slow with no major features or changes planned, with the main focus being on having a clear and stable command line interface and documentation. However bugs are still planned to be fixed as soon as possible whenever they are discovered and any new & interesting pythonic features may be considered depending on usefulness and scope.
 ## Command Line Interface
 ```
 usage: pyxargs [options] command [initial-arguments ...]
@@ -34,8 +40,8 @@ optional arguments:
   -d delim              input items are terminated by the specified delimiter
                         instead of whitespace and trailing whitespace is
                         removed, sets input-mode=stdin
-  -a file               read items from file instead of standard input to
-                        build commands, sets input-mode=stdin
+  -a arg-file           read input items from arg-file instead of standard
+                        input to build commands, sets input-mode=stdin
   -E eof-str            ignores any input after eof-str, sets input-mode=stdin
   -c max-chars          omits any command line exceeding max-chars, no limit
                         by default
@@ -46,7 +52,8 @@ optional arguments:
                         with re.sub(patten, repl, input)
   -r regex              only build commands from inputs matching regex
   -o                    omit inputs matching regex instead
-  -f                    only match regex to filenames
+  -f                    only match regex against filenames, ignoring full
+                        paths (if available)
   --py                  executes command(s) as python code using exec()
   --pyev                evaluates command(s) as python expression(s) using
                         eval()
@@ -75,7 +82,7 @@ comparing usage with find & xargs
     find ./ -name "*" -type f -print0 | pyxargs -0 echo {}
     pyxargs -m path echo ./{}
     pyxargs -m path --py "print('./{}')"
-note: pyxargs requires a replace-str, {} in this example, to be used,
+note: pyxargs requires a replace-str ({} in this example) to insert inputs,
 inputs are not appended in the absence of a replace-str like in xargs,
 this also implies the equivalent of xargs --max-lines=1
 
@@ -100,12 +107,6 @@ and now for something completely different, python code
     pyxargs --pre "n=0" --post "print(n,'files')" --py n+=1
 a best effort is made to avoid side effects by executing in its own namespace
 ```
-## Purpose
-This began as a solution to the [encoding problem](https://en.wikipedia.org/wiki/Xargs#Encoding_problem) with [xargs](http://man7.org/linux/man-pages/man1/xargs.1.html). It eventually grew as I found being able to quickly mix python code with command lines and files to be useful.
-
-Most of xargs functionality has been implemented, however the original focus with fixing the encoding problem via the file input-mode, not to be confused with arg-file (-a file), remains. The goal is not to replace xargs, but to compliment it for slightly different, and more modern use cases, therefore not all features are included, such as max-lines, or max-args.
-
-Going forward development will slow with no major features or changes planned, with the main focus being on having a clear and stable command line interface and documentation. However bugs are still planned to be fixed as soon as possible whenever they are discovered and any new & interesting pythonic features may be considered.
 ## Links
 - https://github.com/elesiuta/pyxargs
 - https://pypi.org/project/pyxargs/
