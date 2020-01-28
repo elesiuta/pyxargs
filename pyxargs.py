@@ -294,7 +294,7 @@ def main():
                                            "       %(prog)s -h | --help | --examples | --version")
     parser.add_argument("command", action="store", type=str, nargs=argparse.REMAINDER,
                         help=argparse.SUPPRESS)
-    parser.add_argument("--examples", action="store_true",
+    parser.add_argument("--examples", action="store_true", dest="examples",
                         help="print example usage")
     parser.add_argument("-s", action="store_true", dest="command_strings",
                         help="support for multiple commands to be run sequentially by encapsulating in quotes (each its own string)")
@@ -326,7 +326,7 @@ def main():
                         help="omits any command line exceeding max-chars, no limit by default")
     parser.add_argument("-I", action="store", type=str, default="{}", metavar="replace-str", dest="replace_str",
                         help="replace occurrences of replace-str in the command(s) with input, default: {}")
-    parser.add_argument("--resub", nargs=3, type=str, metavar=("pattern", "repl", "replace-str"),
+    parser.add_argument("--resub", nargs=3, type=str, metavar=("pattern", "repl", "replace-str"), dest="resub",
                         help="replace occurrences of replace-str in the command(s) with re.sub(patten, repl, input)")
     parser.add_argument("-r", type=str, default=".", metavar="regex", dest="regex",
                         help="only build commands from inputs matching regex")
@@ -334,29 +334,29 @@ def main():
                         help="omit inputs matching regex instead")
     parser.add_argument("-f", action="store_true", dest="regex_fname",
                         help="only match regex against filenames, ignoring full paths (if available)")
-    parser.add_argument("--py", action="store_true",
+    parser.add_argument("--py", action="store_true", dest="py",
                         help="executes command(s) as python code using exec()")
-    parser.add_argument("--pyev", action="store_true",
+    parser.add_argument("--pyev", action="store_true", dest="pyev",
                         help="evaluates command(s) as python expression(s) using eval()")
     parser.add_argument("--import", nargs="+", type=str, default=[], metavar=("library"), dest="imprt",
                         help="executes 'import <library>' for each library")
     parser.add_argument("--importstar", nargs="+", type=str, default=[], metavar=("library"), dest="imprtstar",
                         help="executes 'from <library> import *' for each library")
-    parser.add_argument("--pre", nargs="+", type=str, default=[], metavar=("\"code\""),
+    parser.add_argument("--pre", nargs="+", type=str, default=[], metavar=("\"code\""), dest="pre",
                         help="runs exec(code) for each line of code before execution")
-    parser.add_argument("--post", nargs="+", type=str, default=[], metavar=("\"code\""),
+    parser.add_argument("--post", nargs="+", type=str, default=[], metavar=("\"code\""), dest="post",
                         help="runs exec(code) for each line of code after execution")
     parser.add_argument("-P", action="store", type=int, default=1, metavar="max-procs", dest="max_procs",
                         help="number of processes, default: 1")
-    parser.add_argument("-p", "--interactive", action="store_true",
+    parser.add_argument("-p", "--interactive", action="store_true", dest="interactive",
                         help="prompt the user before executing each command, only proceeds if response starts with 'y' or 'Y'")
-    parser.add_argument("-n", "--norun", action="store_true",
+    parser.add_argument("-n", "--norun", action="store_true", dest="norun",
                         help="prints commands without executing them")
-    parser.add_argument("-v", "--verbose", action="store_true",
+    parser.add_argument("-v", "--verbose", action="store_true", dest="verbose",
                         help="prints commands before executing them")
-    parser.add_argument("-w", "--csv", action="store_true",
+    parser.add_argument("-w", "--csv", action="store_true", dest="csv",
                         help="writes results to pyxargs-<yymmdd-hhmmss>.csv in os.getcwd()")
-    parser.add_argument("--version", action="store_true",
+    parser.add_argument("--version", action="store_true", dest="version",
                         help="print version number")
     args = parser.parse_args()
     # check for any argument combination known to cause issues
