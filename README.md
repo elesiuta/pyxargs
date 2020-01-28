@@ -75,6 +75,9 @@ comparing usage with find & xargs
     find ./ -name "*" -type f -print0 | pyxargs -0 echo {}
     pyxargs -m path echo ./{}
     pyxargs -m path --py "print('./{}')"
+note: pyxargs requires a replace-str, {} in this example, to be used,
+inputs are not appended in the absence of a replace-str like in xargs,
+this also implies the equivalent of xargs --max-lines=1
 
 use -- to separate options with multiple optional arguments from the command
     pyxargs --pre "print('spam')" "print('spam')" -- echo {}
@@ -97,6 +100,12 @@ and now for something completely different, python code
     pyxargs --pre "n=0" --post "print(n,'files')" --py n+=1
 a best effort is made to avoid side effects by executing in its own namespace
 ```
+## Purpose
+This began as a solution to the [encoding problem](https://en.wikipedia.org/wiki/Xargs#Encoding_problem) with [xargs](http://man7.org/linux/man-pages/man1/xargs.1.html). It eventually grew as I found being able to quickly mix python code with command lines and files to be useful.
+
+Most of xargs functionality has been implemented, however the original focus with fixing the encoding problem via the file input-mode, not to be confused with arg-file (-a file), remains. The goal is not to replace xargs, but to compliment it for slightly different, and more modern use cases, therefore not all features are included, such as max-lines, or max-args.
+
+Going forward development will slow with no major features or changes planned, with the main focus being on having a clear and stable command line interface and documentation. However bugs are still planned to be fixed as soon as possible whenever they are discovered and any new & interesting pythonic features may be considered.
 ## Links
 - https://github.com/elesiuta/pyxargs
 - https://pypi.org/project/pyxargs/

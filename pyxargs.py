@@ -22,7 +22,7 @@ import textwrap
 import multiprocessing
 
 
-VERSION = "1.2.0"
+VERSION = "1.2.1"
 user_namespace = {}
 
 
@@ -262,6 +262,9 @@ def main():
         find ./ -name "*" -type f -print0 | pyxargs -0 echo {}
         pyxargs -m path echo ./{}
         pyxargs -m path --py "print('./{}')"
+    note: pyxargs requires a replace-str, {} in this example, to be used,
+    inputs are not appended in the absence of a replace-str like in xargs,
+    this also implies the equivalent of xargs --max-lines=1
 
     use -- to separate options with multiple optional arguments from the command
         pyxargs --pre "print('spam')" "print('spam')" -- echo {}
