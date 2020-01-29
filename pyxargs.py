@@ -24,7 +24,7 @@ import textwrap
 import multiprocessing
 
 
-VERSION = "1.2.4"
+VERSION = "1.2.5"
 user_namespace = {}
 
 
@@ -36,23 +36,23 @@ class ArgparseCustomFormatter(argparse.HelpFormatter):
 
 
 class StatusBar:
-    def __init__(self, title: str, total: int, display: bool):
+    def __init__(self, title: str, total: int, display: bool) -> "StatusBar":
         self.total = total
         self.display = display
         terminal_width = shutil.get_terminal_size()[0]
         if terminal_width < 16 or total <= 0:
             self.display = False
         if self.display:
-            self.bar_len = min(68, terminal_width - (7 + len(title)))
+            self.bar_len = min(100, terminal_width - (7 + len(title)))
             self.progress = 0
             self.bar_progress = 0
             sys.stdout.write(title + ": [" + "-"*self.bar_len + "]\b" + "\b"*self.bar_len)
             sys.stdout.flush()
 
-    def setTotal(self, total: int):
-        if self.total <= 0:
+    def initTotal(self, total: int) -> None:
+        if total <= 0:
             self.endProgress()
-        else:
+        elif self.progress == 0:
             self.total = total
 
     def update(self) -> None:
@@ -68,13 +68,14 @@ class StatusBar:
         if self.display:
             sys.stdout.write("#" * (self.bar_len - self.bar_progress) + "]\n")
             sys.stdout.flush()
+            self.display = False
 
 
-def replaceSurrogates(string: str):
+def replaceSurrogates(string: str) -> str:
     return string.encode('utf16', 'surrogatepass').decode('utf16', 'replace')
 
 
-def colourPrint(string: str, colour: str):
+def colourPrint(string: str, colour: str) -> None:
     colours = {
         "HEADER": '\033[95m',
         "OKBLUE": '\033[94m',
@@ -89,11 +90,11 @@ def colourPrint(string: str, colour: str):
     print(colours[colour] + string + colours["ENDC"])
 
 
-def safePrint(string: str):
+def safePrint(string: str) -> None:
     print(replaceSurrogates(string))
 
 
-def writeCsv(args: argparse.Namespace, file_dir: str, data: str):
+def writeCsv(args: argparse.Namespace, file_dir: str, data: str) -> None:
     if args.csv:
         file_name = "pyxargs-" + datetime.datetime.now().strftime("%y%m%d-%H%M%S") + ".csv"
         file_path = os.path.join(file_dir, file_name)
@@ -103,7 +104,7 @@ def writeCsv(args: argparse.Namespace, file_dir: str, data: str):
                 writer.writerow(row)
 
 
-def processInput(args: argparse.Namespace):
+def processInput(args: argparse.Namespace) -> list:
     command_dicts = []
     # build commands using standard input mode or by walking the directory tree
     if args.input_mode == "stdin":
@@ -147,9 +148,9 @@ def processInput(args: argparse.Namespace):
         process_status = StatusBar("Building commands", 1, args.verbose)
         if args.verbose == True:
             if args.input_mode == "dir":
-                process_status.setTotal(sum([len(d) for r, d, f in os.walk(args.base_dir, topdown=False, followlinks=args.symlinks)]))
+                process_status.initTotal(sum([len(d) for r, d, f in os.walk(args.base_dir, topdown=False, followlinks=args.symlinks)]))
             else:
-                process_status.setTotal(sum([len(f) for r, d, f in os.walk(args.base_dir, topdown=False, followlinks=args.symlinks)]))
+                process_status.initTotal(sum([len(f) for r, d, f in os.walk(args.base_dir, topdown=False, followlinks=args.symlinks)]))
         # silly walk
         for dir_path, subdir_list, file_list in os.walk(args.base_dir, topdown=True, followlinks=args.symlinks):
             subdir_list.sort()
@@ -170,7 +171,7 @@ def processInput(args: argparse.Namespace):
     return command_dicts
 
 
-def processCommands(start_dir: str, command_dicts: list, args: argparse.Namespace):
+def processCommands(start_dir: str, command_dicts: list, args: argparse.Namespace) -> list:
     output = []
     # pre execution tasks
     for i in args.imprt:
@@ -208,7 +209,7 @@ def processCommands(start_dir: str, command_dicts: list, args: argparse.Namespac
     return output
 
 
-def buildCommand(dir_name: typing.Union[str, None], file_name: typing.Union[str, None], arg_input: typing.Union[str, None], args: argparse.Namespace):
+def buildCommand(dir_name: typing.Union[str, None], file_name: typing.Union[str, None], arg_input: typing.Union[str, None], args: argparse.Namespace) -> list:
     # mode
     if arg_input is None:
         if args.input_mode == "file":
@@ -253,7 +254,7 @@ def buildCommand(dir_name: typing.Union[str, None], file_name: typing.Union[str,
     return command
 
 
-def executeCommand(command_dict: dict):
+def executeCommand(command_dict: dict) -> list:
     args = command_dict["args"]
     dir_name = command_dict["dir"]
     cmds = command_dict["cmd"]
@@ -298,7 +299,7 @@ def executeCommand(command_dict: dict):
         return output
 
 
-def main():
+def main() -> None:
     readme = ("Build and execute command lines or python code from standard input or file paths, "
               "a mostly complete implementation of xargs in python with some added features. "
               "The default input mode (file) builds commands using filenames only and executes them in their respective directories, "
