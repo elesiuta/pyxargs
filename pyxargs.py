@@ -17,6 +17,7 @@ import re
 import csv
 import sys
 import shutil
+import typing
 import argparse
 import datetime
 import textwrap
@@ -47,6 +48,12 @@ class StatusBar:
             self.bar_progress = 0
             sys.stdout.write(title + ": [" + "-"*self.bar_len + "]\b" + "\b"*self.bar_len)
             sys.stdout.flush()
+
+    def setTotal(self, total: int):
+        if self.total <= 0:
+            self.endProgress()
+        else:
+            self.total = total
 
     def update(self) -> None:
         if self.display:
@@ -137,13 +144,12 @@ def processInput(args):
             if command is not None:
                 command_dicts.append({"args": args, "dir": args.base_dir, "cmd": command})
     elif args.input_mode in ['file', 'path', 'abspath', 'dir']:
-        if args.verbose == False:
-            total = 0
-        elif args.input_mode == "dir":
-            total = sum([len(d) for r, d, f in os.walk(args.base_dir, topdown=False, followlinks=args.symlinks)])
-        else:
-            total = sum([len(f) for r, d, f in os.walk(args.base_dir, topdown=False, followlinks=args.symlinks)])
-        process_status = StatusBar("Building commands", total, args.verbose)
+        process_status = StatusBar("Building commands", 1, args.verbose)
+        if args.verbose == True:
+            if args.input_mode == "dir":
+                process_status.setTotal(sum([len(d) for r, d, f in os.walk(args.base_dir, topdown=False, followlinks=args.symlinks)]))
+            else:
+                process_status.setTotal(sum([len(f) for r, d, f in os.walk(args.base_dir, topdown=False, followlinks=args.symlinks)]))
         # silly walk
         for dir_path, subdir_list, file_list in os.walk(args.base_dir, topdown=True, followlinks=args.symlinks):
             subdir_list.sort()
