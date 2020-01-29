@@ -16,13 +16,14 @@ import os
 import re
 import csv
 import sys
+import shutil
 import argparse
 import datetime
 import textwrap
 import multiprocessing
 
 
-VERSION = "1.2.2"
+VERSION = "1.2.3"
 user_namespace = {}
 
 
@@ -31,6 +32,34 @@ class ArgparseCustomFormatter(argparse.HelpFormatter):
         if text[:2] == 'F!':
             return text.splitlines()[1:]
         return argparse.HelpFormatter._split_lines(self, text, width)
+
+
+class StatusBar:
+    def __init__(self, title: str, total: int, display: bool):
+        self.total = total
+        self.display = display
+        terminal_width = shutil.get_terminal_size()[0]
+        if terminal_width < 16 or total == 0:
+            self.display = False
+        if self.display:
+            self.bar_len = min(68, terminal_width - (7 + len(title)))
+            self.progress_scaled = 0
+            self.progress = 0
+            sys.stdout.write(title + ": [" + "-"*self.bar_len + "]\b" + "\b"*self.bar_len)
+            sys.stdout.flush()
+
+    def update(self) -> None:
+        if self.display:
+            self.progress += 1
+            bar_progression = int(self.bar_len * self.progress // self.total) - self.progress_scaled
+            self.progress_scaled += bar_progression
+            sys.stdout.write("#" * bar_progression)
+            sys.stdout.flush()
+
+    def endProgress(self) -> None:
+        if self.display:
+            sys.stdout.write("#" * (self.bar_len - self.progress_scaled) + "]\n")
+            sys.stdout.flush()
 
 
 def replaceSurrogates(string):
@@ -100,25 +129,37 @@ def processInput(args):
             colourPrint("Invalid file: %s" % (args.arg_file), "FAIL")
             sys.exit(0)
         # build commands from input
+        process_status = StatusBar("Building commands", len(arg_input_list), args.verbose)
         for arg_input in arg_input_list:
+            process_status.update()
             command = buildCommand(None, None, arg_input, args)
             if command is not None:
                 command_dicts.append({"args": args, "dir": args.base_dir, "cmd": command})
     elif args.input_mode in ['file', 'path', 'abspath', 'dir']:
+        if args.verbose == False:
+            total = 0
+        elif args.input_mode == "dir":
+            total = sum([len(d) for r, d, f in os.walk(args.base_dir)])
+        else:
+            total = sum([len(f) for r, d, f in os.walk(args.base_dir)])
+        process_status = StatusBar("Building commands", total, args.verbose)
         # silly walk
         for dir_path, subdir_list, file_list in os.walk(args.base_dir):
             subdir_list.sort()
             if args.input_mode == "dir":
                 # build commands from directory names
+                process_status.update()
                 command = buildCommand(dir_path, None, None, args)
                 if command is not None:
                     command_dicts.append({"args": args, "dir": dir_path, "cmd": command})
             elif args.input_mode in ["file", "path", "abspath"]:
                 # build commands from filenames or file paths
                 for f in sorted(file_list):
+                    process_status.update()
                     command = buildCommand(dir_path, f, None, args)
                     if command is not None:
                         command_dicts.append({"args": args, "dir": dir_path, "cmd": command})
+    process_status.endProgress()
     return command_dicts
 
 
