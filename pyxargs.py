@@ -346,8 +346,6 @@ def main():
                         help="print example usage")
     parser.add_argument("-s", action="store_true", dest="command_strings",
                         help="support for multiple commands to be run sequentially by encapsulating in quotes (each its own string)")
-    parser.add_argument("-l", action="store_true", dest="symlinks",
-                        help="follow symlinks when scanning directories")
     parser.add_argument("-b", type=str, default=os.getcwd(), metavar="base-directory", dest="base_dir",
                         help="default: os.getcwd()")
     parser.add_argument("-m", type=str, default="file", metavar="input-mode", choices=['file', 'path', 'abspath', 'dir', 'stdin'], dest="input_mode",
@@ -364,6 +362,8 @@ def main():
                              "          of filenames\n"
                              "stdin   = build commands from standard input and\n"
                              "          execute in the base directory")
+    parser.add_argument("--symlinks", action="store_true", dest="symlinks",
+                        help="follow symlinks when scanning directories")
     parser.add_argument("-0", "--null", action="store_true", dest="null",
                         help="input items are terminated by a null character instead of by whitespace, sets input-mode=stdin")
     parser.add_argument("-d", type=str, metavar="delim", dest="delim",
