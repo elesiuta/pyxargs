@@ -140,12 +140,12 @@ def processInput(args):
         if args.verbose == False:
             total = 0
         elif args.input_mode == "dir":
-            total = sum([len(d) for r, d, f in os.walk(args.base_dir, topdown=False, followlinks=False)])
+            total = sum([len(d) for r, d, f in os.walk(args.base_dir, topdown=False, followlinks=args.symlinks)])
         else:
-            total = sum([len(f) for r, d, f in os.walk(args.base_dir, topdown=False, followlinks=False)])
+            total = sum([len(f) for r, d, f in os.walk(args.base_dir, topdown=False, followlinks=args.symlinks)])
         process_status = StatusBar("Building commands", total, args.verbose)
         # silly walk
-        for dir_path, subdir_list, file_list in os.walk(args.base_dir, topdown=True, followlinks=False):
+        for dir_path, subdir_list, file_list in os.walk(args.base_dir, topdown=True, followlinks=args.symlinks):
             subdir_list.sort()
             if args.input_mode == "dir":
                 # build commands from directory names
@@ -340,6 +340,8 @@ def main():
                         help="print example usage")
     parser.add_argument("-s", action="store_true", dest="command_strings",
                         help="support for multiple commands to be run sequentially by encapsulating in quotes (each its own string)")
+    parser.add_argument("-l", action="store_true", dest="symlinks",
+                        help="follow symlinks when scanning directories")
     parser.add_argument("-b", type=str, default=os.getcwd(), metavar="base-directory", dest="base_dir",
                         help="default: os.getcwd()")
     parser.add_argument("-m", type=str, default="file", metavar="input-mode", choices=['file', 'path', 'abspath', 'dir', 'stdin'], dest="input_mode",
