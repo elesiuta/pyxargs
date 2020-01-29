@@ -35,6 +35,7 @@ optional arguments:
                                   of filenames
                         stdin   = build commands from standard input and
                                   execute in the base directory
+  --symlinks            follow symlinks when scanning directories
   -0, --null            input items are terminated by a null character instead
                         of by whitespace, sets input-mode=stdin
   -d delim              input items are terminated by the specified delimiter
