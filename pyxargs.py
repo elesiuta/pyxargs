@@ -303,7 +303,7 @@ def main():
               "a mostly complete implementation of xargs in python with some added features. "
               "The default input mode (file) builds commands using filenames only and executes them in their respective directories, "
               "this is useful when dealing with file paths containing multiple character encodings.")
-    examples = textwrap.dedent("""
+    examples = textwrap.dedent(r"""
     comparing usage with find & xargs
         find ./ -name "*" -type f -print0 | xargs -0 -I {} echo {}
         find ./ -name "*" -type f -print0 | pyxargs -0 -I {} echo {}
