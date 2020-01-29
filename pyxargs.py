@@ -70,11 +70,11 @@ class StatusBar:
             sys.stdout.flush()
 
 
-def replaceSurrogates(string):
+def replaceSurrogates(string: str):
     return string.encode('utf16', 'surrogatepass').decode('utf16', 'replace')
 
 
-def colourPrint(string, colour):
+def colourPrint(string: str, colour: str):
     colours = {
         "HEADER": '\033[95m',
         "OKBLUE": '\033[94m',
@@ -89,21 +89,21 @@ def colourPrint(string, colour):
     print(colours[colour] + string + colours["ENDC"])
 
 
-def safePrint(string):
+def safePrint(string: str):
     print(replaceSurrogates(string))
 
 
-def writeCsv(args, file_dir, data, enc=None, delimiter=","):
+def writeCsv(args: argparse.Namespace, file_dir: str, data: str):
     if args.csv:
         file_name = "pyxargs-" + datetime.datetime.now().strftime("%y%m%d-%H%M%S") + ".csv"
         file_path = os.path.join(file_dir, file_name)
-        with open(file_path, "w", newline="", encoding=enc, errors="backslashreplace") as f:
-            writer = csv.writer(f, delimiter=delimiter)
+        with open(file_path, "w", newline="", encoding="utf-8", errors="backslashreplace") as f:
+            writer = csv.writer(f, delimiter=",")
             for row in data:
                 writer.writerow(row)
 
 
-def processInput(args):
+def processInput(args: argparse.Namespace):
     command_dicts = []
     # build commands using standard input mode or by walking the directory tree
     if args.input_mode == "stdin":
@@ -170,7 +170,7 @@ def processInput(args):
     return command_dicts
 
 
-def processCommands(start_dir, command_dicts, args):
+def processCommands(start_dir: str, command_dicts: list, args: argparse.Namespace):
     output = []
     # pre execution tasks
     for i in args.imprt:
@@ -208,7 +208,7 @@ def processCommands(start_dir, command_dicts, args):
     return output
 
 
-def buildCommand(dir_name, file_name, arg_input, args):
+def buildCommand(dir_name: typing.Union[str, None], file_name: typing.Union[str, None], arg_input: typing.Union[str, None], args: argparse.Namespace):
     # mode
     if arg_input is None:
         if args.input_mode == "file":
@@ -253,7 +253,7 @@ def buildCommand(dir_name, file_name, arg_input, args):
     return command
 
 
-def executeCommand(command_dict):
+def executeCommand(command_dict: dict):
     args = command_dict["args"]
     dir_name = command_dict["dir"]
     cmds = command_dict["cmd"]
