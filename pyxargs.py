@@ -39,26 +39,27 @@ class StatusBar:
         self.total = total
         self.display = display
         terminal_width = shutil.get_terminal_size()[0]
-        if terminal_width < 16 or total == 0:
+        if terminal_width < 16 or total <= 0:
             self.display = False
         if self.display:
             self.bar_len = min(68, terminal_width - (7 + len(title)))
-            self.progress_scaled = 0
             self.progress = 0
+            self.bar_progress = 0
             sys.stdout.write(title + ": [" + "-"*self.bar_len + "]\b" + "\b"*self.bar_len)
             sys.stdout.flush()
 
     def update(self) -> None:
         if self.display:
             self.progress += 1
-            bar_progression = int(self.bar_len * self.progress // self.total) - self.progress_scaled
-            self.progress_scaled += bar_progression
-            sys.stdout.write("#" * bar_progression)
-            sys.stdout.flush()
+            bar_progression = int(self.bar_len * self.progress // self.total) - self.bar_progress
+            if bar_progression != 0:
+                self.bar_progress += bar_progression
+                sys.stdout.write("#" * bar_progression)
+                sys.stdout.flush()
 
     def endProgress(self) -> None:
         if self.display:
-            sys.stdout.write("#" * (self.bar_len - self.progress_scaled) + "]\n")
+            sys.stdout.write("#" * (self.bar_len - self.bar_progress) + "]\n")
             sys.stdout.flush()
 
 
@@ -139,12 +140,12 @@ def processInput(args):
         if args.verbose == False:
             total = 0
         elif args.input_mode == "dir":
-            total = sum([len(d) for r, d, f in os.walk(args.base_dir)])
+            total = sum([len(d) for r, d, f in os.walk(args.base_dir, topdown=False, followlinks=False)])
         else:
-            total = sum([len(f) for r, d, f in os.walk(args.base_dir)])
+            total = sum([len(f) for r, d, f in os.walk(args.base_dir, topdown=False, followlinks=False)])
         process_status = StatusBar("Building commands", total, args.verbose)
         # silly walk
-        for dir_path, subdir_list, file_list in os.walk(args.base_dir):
+        for dir_path, subdir_list, file_list in os.walk(args.base_dir, topdown=True, followlinks=False):
             subdir_list.sort()
             if args.input_mode == "dir":
                 # build commands from directory names
