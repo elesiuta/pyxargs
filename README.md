@@ -2,7 +2,7 @@
 ## Purpose
 This began as a solution to the [encoding problem](https://en.wikipedia.org/wiki/Xargs#Encoding_problem) with [xargs](https://www.gnu.org/software/findutils/manual/html_node/find_html/xargs-options.html) [(additional reference)](http://man7.org/linux/man-pages/man1/xargs.1.html). It eventually grew as I found being able to quickly mix python code with command lines and files to be useful.
 
-Most of xargs functionality has been implemented, however the original focus with fixing the encoding problem via the file input-mode, not to be confused with arg-file, remains. The goal is not to replace xargs but to compliment it for slightly different, and more modern use cases, therefore not all features are included, such as max-lines or max-args.
+Most of xargs functionality has been implemented, however the original focus of designing around the file input-mode (not to be confused with arg-file), both for its ease of use and fixing the encoding problem, remains. The goal is not to replace xargs for every use case but to target slightly different and more modern ones, therefore not all features are included, such as options for max-lines or max-args. This keeps things simple (both the user interface and codebase) while allowing for new features, no knowledge of xargs is required and you may even find pyxargs easier to use.
 
 Going forward development will slow with no major features or changes planned, with the main focus being on having a clear and stable command line interface and documentation. However bugs are still planned to be fixed as soon as possible whenever they are discovered and any new & interesting pythonic features may be considered depending on usefulness and scope.
 ## Command Line Interface
