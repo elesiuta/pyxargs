@@ -148,9 +148,9 @@ def processInput(args: argparse.Namespace) -> list:
         process_status = StatusBar("Building commands", 1, args.verbose)
         if args.verbose == True:
             if args.input_mode == "dir":
-                process_status.initTotal(sum([len(d) for r, d, f in os.walk(args.base_dir, topdown=False, followlinks=args.symlinks)]))
+                process_status.initTotal(sum(len(d) for r, d, f in os.walk(args.base_dir, topdown=False, followlinks=args.symlinks)))
             else:
-                process_status.initTotal(sum([len(f) for r, d, f in os.walk(args.base_dir, topdown=False, followlinks=args.symlinks)]))
+                process_status.initTotal(sum(len(f) for r, d, f in os.walk(args.base_dir, topdown=False, followlinks=args.symlinks)))
         # silly walk
         for dir_path, subdir_list, file_list in os.walk(args.base_dir, topdown=True, followlinks=args.symlinks):
             subdir_list.sort()
