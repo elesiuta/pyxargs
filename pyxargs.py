@@ -171,6 +171,10 @@ def processInput(args: argparse.Namespace) -> list:
 
 def processCommands(start_dir: str, command_dicts: list, args: argparse.Namespace) -> list:
     output = []
+    if args.py or args.pyev:
+        cmd_join = lambda cmds: [cmd[0] for cmd in cmds]
+    else:
+        cmd_join = lambda cmds: [shlex.join(cmd) for cmd in cmds]
     # pre execution tasks
     for i in args.imprt:
         exec("import " + i, globals(), user_namespace)
@@ -182,7 +186,7 @@ def processCommands(start_dir: str, command_dicts: list, args: argparse.Namespac
     if args.max_procs == 1:
         if args.interactive:
             for command_dict in command_dicts:
-                command_list = [shlex.join(cmd) for cmd in command_dict["cmd"]]
+                command_list = cmd_join(command_dict["cmd"])
                 for cmd in command_list: colourPrint(cmd, "G")
                 colourPrint("Run command(s) (Yes/No/QUIT)?", "Y")
                 run = input("> ")
@@ -195,14 +199,14 @@ def processCommands(start_dir: str, command_dicts: list, args: argparse.Namespac
                     sys.exit(0)
         else:
             for command_dict in command_dicts:
-                command_list = [shlex.join(cmd) for cmd in command_dict["cmd"]]
+                command_list = cmd_join(command_dict["cmd"])
                 output.append(["COMMAND(S):"] + command_list + ["OUTPUT(S):"] + executeCommand(command_dict))
     elif args.max_procs > 1:
         with multiprocessing.Pool(args.max_procs) as pool:
             async_result = pool.map_async(executeCommand, command_dicts)
             results = async_result.get()
         for i in range(len(command_dicts)):
-            command_list = [shlex.join(cmd) for cmd in command_dicts[i]["cmd"]]
+            command_list = cmd_join(command_dicts[i]["cmd"])
             output.append(["COMMAND(S):"] + command_list + ["OUTPUT(S):"] + results[i])
     # post execution tasks
     for line in args.post:
@@ -235,7 +239,12 @@ def buildCommand(dir_name: typing.Union[str, None], file_name: typing.Union[str,
         if (re.search(args.regex, arg_input) is not None) == args.regex_omit:
             return None
     # interpret command(s)
-    if args.command_strings:
+    if args.py or args.pyev:
+        if args.command_strings:
+            commands = [[cmd] for cmd in args.command]
+        else:
+            commands = [[" ".join(args.command)]]
+    elif args.command_strings:
         commands = [shlex.split(cmd) for cmd in args.command]
     else:
         commands = [args.command[:]]
@@ -279,16 +288,16 @@ def executeCommand(command_dict: dict) -> list:
                 colourPrint(str(cmds), "B")
         for cmd in cmds:
             if args.verbose:
-                colourPrint(cmd, "G")
+                colourPrint(cmd[0], "G")
             if args.py:
                 try:
-                    exec(cmd, globals(), user_namespace)
+                    exec(cmd[0], globals(), user_namespace)
                     output.append("EXEC SUCCESS")
                 except Exception as e:
                     output.append("EXEC ERROR: " + str(e))
             elif args.pyev:
                 try:
-                    output.append(eval(cmd, globals(), user_namespace))
+                    output.append(eval(cmd[0], globals(), user_namespace))
                 except Exception as e:
                     output.append("EVAL ERROR: " + str(e))
             elif args.csv:
