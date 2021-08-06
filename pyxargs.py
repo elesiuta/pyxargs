@@ -128,7 +128,7 @@ def processInput(args: argparse.Namespace) -> list:
                 if args.eof_str is not None:
                     arg_input_list = f.read().split(args.eof_str, 1)[0].splitlines()
                 elif seperator is None:
-                    arg_input_list = f.readlines()
+                    arg_input_list = f.read().splitlines()
                 else:
                     arg_input_list = f.read().split(seperator)
         else:
@@ -276,10 +276,16 @@ def executeCommand(command_dict: dict) -> list:
     # no run
     if args.dry_run:
         if len(cmds) > 1:
-            safePrint(str([shlex.join(cmd) for cmd in cmds]))
+            if args.py or args.pyev:
+                safePrint(str([cmd[0] for cmd in cmds]))
+            else:
+                safePrint(str([shlex.join(cmd) for cmd in cmds]))
         else:
-            safePrint(shlex.join(cmds[0]))
-        return ["NORUN"]
+            if args.py or args.pyev:
+                safePrint(cmds[0][0])
+            else:
+                safePrint(shlex.join(cmds[0]))
+        return ["DRY-RUN"]
     else:
         # execute command(s) and return output for csv
         output = []
