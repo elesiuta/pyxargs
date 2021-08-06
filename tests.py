@@ -97,7 +97,7 @@ class TestPyxargs(unittest.TestCase):
             self.assertEqual(result, ['hello\n', 'world\n', 'bye\n', 'world\n'])
 
     def test_trailing_chars_removed(self):
-        cmd = "echo hello,world,bye,world | python pyxargs.py -d , --norun --py \"print('{}')\""
+        cmd = "echo hello,world,bye,world | python pyxargs.py -d , --dry-run --py \"print('{}')\""
         with os.popen(cmd) as result:
             result = result.readlines()
             self.assertEqual(result, ["print('hello')\n", "print('world')\n", "print('bye')\n", "print('world')\n"])
