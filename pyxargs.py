@@ -16,15 +16,17 @@ import os
 import re
 import csv
 import sys
+import shlex
 import shutil
 import typing
 import argparse
 import datetime
 import textwrap
+import subprocess
 import multiprocessing
 
 
-VERSION = "1.2.8"
+VERSION = "1.2.9"
 user_namespace = {}
 
 
@@ -77,17 +79,13 @@ def replaceSurrogates(string: str) -> str:
 
 def colourPrint(string: str, colour: str) -> None:
     colours = {
-        "HEADER": '\033[95m',
-        "OKBLUE": '\033[94m',
-        "OKGREEN": '\033[92m',
-        "WARNING": '\033[93m',
-        "FAIL": '\033[91m',
-        "ENDC": '\033[0m',
-        "BOLD": '\033[1m',
-        "UNDERLINE": '\033[4m'
+        "R": "\033[91m",
+        "B": "\033[94m",
+        "G": "\033[92m",
+        "Y": "\033[93m",
     }
     string = replaceSurrogates(string)
-    print(colours[colour] + string + colours["ENDC"])
+    print(colours[colour] + string + "\033[0m")
 
 
 def safePrint(string: str) -> None:
@@ -135,15 +133,15 @@ def processInput(args: argparse.Namespace) -> list:
                     arg_input_list = f.read().split(seperator)
         else:
             # error
-            colourPrint("Invalid file: %s" % (args.arg_file), "FAIL")
+            colourPrint("Invalid file: %s" % (args.arg_file), "R")
             sys.exit(0)
         # build commands from input
         process_status = StatusBar("Building commands", len(arg_input_list), args.verbose)
         for arg_input in arg_input_list:
             process_status.update()
-            command = buildCommand(None, None, arg_input, args)
-            if command is not None:
-                command_dicts.append({"args": args, "dir": args.base_dir, "cmd": command})
+            commands = buildCommand(None, None, arg_input, args)
+            if commands is not None:
+                command_dicts.append({"args": args, "dir": args.base_dir, "cmd": commands})
     elif args.input_mode in ['file', 'path', 'abspath', 'dir']:
         process_status = StatusBar("Building commands", 1, args.verbose)
         if args.verbose == True:
@@ -157,16 +155,16 @@ def processInput(args: argparse.Namespace) -> list:
             if args.input_mode == "dir":
                 # build commands from directory names
                 process_status.update()
-                command = buildCommand(dir_path, None, None, args)
-                if command is not None:
-                    command_dicts.append({"args": args, "dir": dir_path, "cmd": command})
+                commands = buildCommand(dir_path, None, None, args)
+                if commands is not None:
+                    command_dicts.append({"args": args, "dir": dir_path, "cmd": commands})
             elif args.input_mode in ["file", "path", "abspath"]:
                 # build commands from filenames or file paths
                 for f in sorted(file_list):
                     process_status.update()
-                    command = buildCommand(dir_path, f, None, args)
-                    if command is not None:
-                        command_dicts.append({"args": args, "dir": dir_path, "cmd": command})
+                    commands = buildCommand(dir_path, f, None, args)
+                    if commands is not None:
+                        command_dicts.append({"args": args, "dir": dir_path, "cmd": commands})
     process_status.endProgress()
     return command_dicts
 
@@ -184,25 +182,28 @@ def processCommands(start_dir: str, command_dicts: list, args: argparse.Namespac
     if args.max_procs == 1:
         if args.interactive:
             for command_dict in command_dicts:
-                for cmd in command_dict["cmd"]: colourPrint(cmd, "OKGREEN")
-                colourPrint("Run command(s) (Yes/No/QUIT)?", "WARNING")
+                command_list = [shlex.join(cmd) for cmd in command_dict["cmd"]]
+                for cmd in command_list: colourPrint(cmd, "G")
+                colourPrint("Run command(s) (Yes/No/QUIT)?", "Y")
                 run = input("> ")
                 if len(run) >= 1 and run[0].lower() == "y":
-                    output.append(["COMMAND(S):"] + command_dict["cmd"] + ["OUTPUT(S):"] + executeCommand(command_dict))
+                    output.append(["COMMAND(S):"] + command_list + ["OUTPUT(S):"] + executeCommand(command_dict))
                 elif len(run) >= 1 and run[0].lower() == "n":
-                    output.append(["COMMAND(S):"] + command_dict["cmd"] + ["OUTPUT(S):"] + ["SKIPPED"])
+                    output.append(["COMMAND(S):"] + command_list + ["OUTPUT(S):"] + ["SKIPPED"])
                 else:
                     writeCsv(args, start_dir, output)
                     sys.exit(0)
         else:
             for command_dict in command_dicts:
-                output.append(["COMMAND(S):"] + command_dict["cmd"] + ["OUTPUT(S):"] + executeCommand(command_dict))
+                command_list = [shlex.join(cmd) for cmd in command_dict["cmd"]]
+                output.append(["COMMAND(S):"] + command_list + ["OUTPUT(S):"] + executeCommand(command_dict))
     elif args.max_procs > 1:
         with multiprocessing.Pool(args.max_procs) as pool:
             async_result = pool.map_async(executeCommand, command_dicts)
             results = async_result.get()
         for i in range(len(command_dicts)):
-            output.append(["COMMAND(S):"] + command_dicts[i]["cmd"] + ["OUTPUT(S):"] + results[i])
+            command_list = [shlex.join(cmd) for cmd in command_dicts[i]["cmd"]]
+            output.append(["COMMAND(S):"] + command_list + ["OUTPUT(S):"] + results[i])
     # post execution tasks
     for line in args.post:
         exec(line, globals(), user_namespace)
@@ -235,23 +236,25 @@ def buildCommand(dir_name: typing.Union[str, None], file_name: typing.Union[str,
             return None
     # interpret command(s)
     if args.command_strings:
-        command = args.command[:]
+        commands = [shlex.split(cmd) for cmd in args.command]
     else:
-        command = [" ".join(args.command)]
+        commands = [args.command[:]]
     # re.sub input into command
     if args.resub is not None:
-        for i in range(len(command)):
-            command[i] = command[i].replace(args.resub[2], re.sub(args.resub[0], args.resub[1], arg_input))
+        for i in range(len(commands)):
+            for j in range(len(commands[i])):
+                commands[i][j] = commands[i][j].replace(args.resub[2], re.sub(args.resub[0], args.resub[1], arg_input))
     # sub input into command
-    for i in range(len(command)):
-        command[i] = command[i].replace(args.replace_str, arg_input)
+    for i in range(len(commands)):
+        for j in range(len(commands[i])):
+            commands[i][j] = commands[i][j].replace(args.replace_str, arg_input)
     # check length of command(s)
     if args.max_chars is not None:
-        for c in command:
-            if len(c) > args.max_chars:
+        for cmd in commands:
+            if len(shlex.join(cmd)) > args.max_chars:
                 return None
     # and finally
-    return command
+    return commands
 
 
 def executeCommand(command_dict: dict) -> list:
@@ -262,21 +265,21 @@ def executeCommand(command_dict: dict) -> list:
     if args.input_mode in ["file", "stdin"]:
         os.chdir(dir_name)
     # no run
-    if args.norun:
+    if args.dry_run:
         if len(cmds) > 1:
-            safePrint(str(cmds))
+            safePrint(str([shlex.join(cmd) for cmd in cmds]))
         else:
-            safePrint(cmds[0])
+            safePrint(shlex.join(cmds[0]))
         return ["NORUN"]
     else:
         # execute command(s) and return output for csv
         output = []
         if len(cmds) > 1:
             if args.verbose:
-                colourPrint(str(cmds), "OKBLUE")
+                colourPrint(str(cmds), "B")
         for cmd in cmds:
             if args.verbose:
-                colourPrint(cmd, "OKGREEN")
+                colourPrint(cmd, "G")
             if args.py:
                 try:
                     exec(cmd, globals(), user_namespace)
@@ -289,13 +292,13 @@ def executeCommand(command_dict: dict) -> list:
                 except Exception as e:
                     output.append("EVAL ERROR: " + str(e))
             elif args.csv:
-                with os.popen(cmd) as result:
+                with os.popen(shlex.join(cmd)) as result:
                     result = result.read()
                     sys.stdout.write(result)
                     output.append(result)
             else:
-                os.system(cmd)
-                output.append("os.system")
+                subprocess.run(cmd)
+                output.append("subprocess.run")
         return output
 
 
@@ -401,7 +404,7 @@ def main() -> None:
                         help="number of processes, default: 1")
     parser.add_argument("-p", "--interactive", action="store_true", dest="interactive",
                         help="prompt the user before executing each command, only proceeds if response starts with 'y' or 'Y'")
-    parser.add_argument("-n", "--norun", action="store_true", dest="norun",
+    parser.add_argument("-n", "--dry-run", action="store_true", dest="dry_run",
                         help="prints commands without executing them")
     parser.add_argument("-v", "--verbose", action="store_true", dest="verbose",
                         help="prints commands before executing them")
@@ -416,7 +419,7 @@ def main() -> None:
         (args.null and args.delim is not None) or
         (args.py and args.pyev) or
         (args.max_procs > 1 and args.interactive)):
-        colourPrint("Invalid argument(s): %s" % (args), "FAIL")
+        colourPrint("Invalid argument(s): %s" % (args), "R")
         sys.exit(0)
     if len(args.command) >= 1 and args.command[0] == "--":
         _ = args.command.pop(0)
