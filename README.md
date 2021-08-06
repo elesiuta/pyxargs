@@ -1,10 +1,8 @@
 # pyxargs
 ## Purpose
-This began as a solution to the [encoding problem](https://en.wikipedia.org/wiki/Xargs#Encoding_problem) with [xargs](https://www.gnu.org/software/findutils/manual/html_node/find_html/xargs-options.html) [(additional reference)](http://man7.org/linux/man-pages/man1/xargs.1.html). It eventually grew as I found being able to quickly mix python code with command lines and files to be useful.
+This initially began as a simple solution to the [encoding problem with xargs](https://en.wikipedia.org/wiki/Xargs#Encoding_problem). Since then, some additional features have been added such as reading and executing python code as an input.  
 
-Most of xargs functionality has been implemented, however the original focus of designing around the file input-mode (not to be confused with arg-file), both for its ease of use and fixing the encoding problem, remains. The goal is not to replace xargs for every use case but to target slightly different and more modern ones, therefore not all features are included, such as options for max-lines or max-args. This keeps things simple (both the user interface and codebase) while allowing for new features, no knowledge of xargs is required and you may even find pyxargs easier to use.
-
-Going forward development will slow with no major features or changes planned, with the main focus being on having a clear and stable command line interface and documentation. However bugs are still planned to be fixed as soon as possible whenever they are discovered and any new & interesting pythonic features may be considered depending on usefulness and scope.
+This is a *mostly* complete implementation of xargs, based entirely on what I felt like at the time, with no new features planned.  
 ## Command Line Interface
 ```
 usage: pyxargs [options] command [initial-arguments ...]
@@ -69,7 +67,7 @@ optional arguments:
   -P max-procs          number of processes, default: 1
   -p, --interactive     prompt the user before executing each command, only
                         proceeds if response starts with 'y' or 'Y'
-  -n, --norun           prints commands without executing them
+  -n, --dry-run         prints commands without executing them
   -v, --verbose         prints commands before executing them
   -w, --csv             writes results to pyxargs-<yymmdd-hhmmss>.csv in
                         os.getcwd()
