@@ -102,7 +102,7 @@ def writeCsv(args: argparse.Namespace, file_dir: str, data: str) -> None:
                 writer.writerow(row)
 
 
-def processInput(args: argparse.Namespace) -> list:
+def processInput(args: argparse.Namespace, stdin: typing.Union[str, None]) -> list:
     command_dicts = []
     # build commands using standard input mode or by walking the directory tree
     if args.input_mode == "stdin":
@@ -116,11 +116,9 @@ def processInput(args: argparse.Namespace) -> list:
         if args.arg_file is None:
             # stdin
             if args.eof_str is not None:
-                stdin = sys.stdin.read().split(args.eof_str, 1)[0]
+                stdin = stdin.split(args.eof_str, 1)[0]
             elif args.delim is not None:
-                stdin = sys.stdin.read().rstrip()
-            else:
-                stdin = sys.stdin.read()
+                stdin = stdin.rstrip()
             arg_input_list = stdin.split(seperator)
         elif os.path.isfile(args.arg_file):
             # file
@@ -320,7 +318,7 @@ def executeCommand(command_dict: dict) -> list:
 def main() -> None:
     readme = ("Build and execute command lines or python code from standard input or file paths, "
               "a mostly complete implementation of xargs in python with some added features. "
-              "The default input mode (file) builds commands using filenames only and executes them in their respective directories, "
+              "The file input mode (default if stdin is empty) builds commands using filenames only and executes them in their respective directories, "
               "this is useful when dealing with file paths containing multiple character encodings.")
     examples = textwrap.dedent(r"""
     comparing usage with find & xargs
@@ -367,11 +365,11 @@ def main() -> None:
                         help="support for multiple commands to be run sequentially by encapsulating in quotes (each its own string)")
     parser.add_argument("-b", type=str, default=os.getcwd(), metavar="base-directory", dest="base_dir",
                         help="default: os.getcwd()")
-    parser.add_argument("-m", type=str, default="file", metavar="input-mode", choices=['file', 'path', 'abspath', 'dir', 'stdin'], dest="input_mode",
+    parser.add_argument("-m", type=str, default=None, metavar="input-mode", choices=['file', 'path', 'abspath', 'dir', 'stdin'], dest="input_mode",
                         help="F!\n"
                              "options are:\n"
                              "file    = build commands from filenames and execute in\n"
-                             "          each subdirectory respectively (default)\n"
+                             "          each subdirectory respectively\n"
                              "path    = build commands from file paths relative to\n"
                              "          the base directory and execute in the base\n"
                              "          directory\n"
@@ -380,7 +378,8 @@ def main() -> None:
                              "dir     = build commands from directory names instead\n"
                              "          of filenames\n"
                              "stdin   = build commands from standard input and\n"
-                             "          execute in the base directory")
+                             "          execute in the base directory\n"
+                             "default: stdin unless empty, then file")
     parser.add_argument("--symlinks", action="store_true", dest="symlinks",
                         help="follow symlinks when scanning directories")
     parser.add_argument("-0", "--null", action="store_true", dest="null",
@@ -435,16 +434,28 @@ def main() -> None:
         (args.py and args.pyev) or
         (args.max_procs > 1 and args.interactive)):
         colourPrint("Invalid argument(s): %s" % (args), "R")
-        sys.exit(0)
+        sys.exit(1)
     if len(args.command) >= 1 and args.command[0] == "--":
         _ = args.command.pop(0)
-    # set arguments implied by others
+    # set arguments implied by others and read stdin if required
     if args.null or args.delim is not None or args.arg_file is not None or args.eof_str is not None:
         args.input_mode = "stdin"
+    if args.input_mode == "stdin" and args.arg_file is None:
+        stdin = sys.stdin.read()
+    elif args.input_mode is None and not sys.stdin.isatty():
+        stdin = sys.stdin.read()
+        if stdin:
+            args.input_mode = "stdin"
+        else:
+            stdin = None
+    else:
+        stdin = None
+    if args.input_mode is None:
+        args.input_mode = "file"
     # build and run commands
     if len(args.command) >= 1:
         start_dir = os.getcwd()
-        command_dicts = processInput(args)
+        command_dicts = processInput(args, stdin)
         output = processCommands(start_dir, command_dicts, args)
         writeCsv(args, start_dir, output)
     # no commands given, print examples, version, or usage
