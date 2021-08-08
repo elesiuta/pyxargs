@@ -1,6 +1,6 @@
 # pyxargs
 ## Purpose
-This initially began as a simple solution to the [encoding problem with xargs](https://en.wikipedia.org/wiki/Xargs#Encoding_problem). Since then, some additional features have been added such as reading and executing python code as an input.  
+I started this as a simple solution to the [encoding problem with xargs](https://en.wikipedia.org/wiki/Xargs#Encoding_problem). Since then, I've added some additional features such as taking python code as arguments to be executed.  
 
 This is a *mostly* complete implementation of xargs, based entirely on what I felt like at the time, with no new features planned.  
 ## Command Line Interface
