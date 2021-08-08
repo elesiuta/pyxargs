@@ -104,6 +104,7 @@ def writeCsv(args: argparse.Namespace, file_dir: str, data: str) -> None:
 
 def processInput(args: argparse.Namespace, stdin: typing.Union[str, None]) -> list:
     command_dicts = []
+    append_input = not (args.py or args.pyev or args.command_strings) and args.replace_str == "{}" and all("{}" not in arg for arg in args.command)
     # build commands using standard input mode or by walking the directory tree
     if args.input_mode == "stdin":
         # set seperator
@@ -137,7 +138,7 @@ def processInput(args: argparse.Namespace, stdin: typing.Union[str, None]) -> li
         process_status = StatusBar("Building commands", len(arg_input_list), args.verbose)
         for arg_input in arg_input_list:
             process_status.update()
-            commands = buildCommand(None, None, arg_input, args)
+            commands = buildCommand(None, None, arg_input, append_input, args)
             if commands is not None:
                 command_dicts.append({"args": args, "dir": args.base_dir, "cmd": commands})
     elif args.input_mode in ['file', 'path', 'abspath', 'dir']:
@@ -153,14 +154,14 @@ def processInput(args: argparse.Namespace, stdin: typing.Union[str, None]) -> li
             if args.input_mode == "dir":
                 # build commands from directory names
                 process_status.update()
-                commands = buildCommand(dir_path, None, None, args)
+                commands = buildCommand(dir_path, None, None, append_input, args)
                 if commands is not None:
                     command_dicts.append({"args": args, "dir": dir_path, "cmd": commands})
             elif args.input_mode in ["file", "path", "abspath"]:
                 # build commands from filenames or file paths
                 for f in sorted(file_list):
                     process_status.update()
-                    commands = buildCommand(dir_path, f, None, args)
+                    commands = buildCommand(dir_path, f, None, append_input, args)
                     if commands is not None:
                         command_dicts.append({"args": args, "dir": dir_path, "cmd": commands})
     process_status.endProgress()
@@ -212,7 +213,7 @@ def processCommands(start_dir: str, command_dicts: list, args: argparse.Namespac
     return output
 
 
-def buildCommand(dir_name: typing.Union[str, None], file_name: typing.Union[str, None], arg_input: typing.Union[str, None], args: argparse.Namespace) -> list:
+def buildCommand(dir_name: typing.Union[str, None], file_name: typing.Union[str, None], arg_input: typing.Union[str, None], append_input: bool, args: argparse.Namespace) -> list:
     # mode
     if arg_input is None:
         if args.input_mode == "file":
@@ -251,10 +252,13 @@ def buildCommand(dir_name: typing.Union[str, None], file_name: typing.Union[str,
         for i in range(len(commands)):
             for j in range(len(commands[i])):
                 commands[i][j] = commands[i][j].replace(args.resub[2], re.sub(args.resub[0], args.resub[1], arg_input))
-    # sub input into command
-    for i in range(len(commands)):
-        for j in range(len(commands[i])):
-            commands[i][j] = commands[i][j].replace(args.replace_str, arg_input)
+    # sub input into command or append
+    if append_input:
+        commands[0].append(arg_input)
+    else:
+        for i in range(len(commands)):
+            for j in range(len(commands[i])):
+                commands[i][j] = commands[i][j].replace(args.replace_str, arg_input)
     # check length of command(s)
     if args.max_chars is not None:
         for cmd in commands:
@@ -321,15 +325,18 @@ def main() -> None:
               "The file input mode (default if stdin is empty) builds commands using filenames only and executes them in their respective directories, "
               "this is useful when dealing with file paths containing multiple character encodings.")
     examples = textwrap.dedent(r"""
-    comparing usage with find & xargs
+    comparing usage with find & xargs (all of these produce the same output)
         find ./ -name "*" -type f -print0 | xargs -0 -I {} echo {}
         find ./ -name "*" -type f -print0 | pyxargs -0 -I {} echo {}
+    pyxargs does not require '-I' to specify a replace-str (default: {})
         find ./ -name "*" -type f -print0 | pyxargs -0 echo {}
+    and in the absence of a replace-str, exactly one input is appended
+        find ./ -name "*" -type f -print0 | pyxargs -0 echo
+        find ./ -name "*" -type f -print0 | xargs -0 --max-lines=1 echo
+    pyxargs can use file paths as input without piping from another program
         pyxargs -m path echo ./{}
+    you can also use python code as your command
         pyxargs -m path --py "print('./{}')"
-    note: pyxargs requires a replace-str ({} in this example) to insert inputs,
-    inputs are not appended in the absence of a replace-str like in xargs,
-    this also implies the equivalent of xargs --max-lines=1
 
     use -- to separate options with multiple optional arguments from the command
         pyxargs --pre "print('spam')" "print('spam')" -- echo {}
@@ -340,8 +347,10 @@ def main() -> None:
     however pipes and redirects still work
         pyxargs echo {} > spam.txt
 
-    multiple commands can be used as such
-        pyxargs -s "echo No 1. {}" "echo And now... No 2. {}"
+    multiple commands can be used by providing them as strings with '-s' set
+        echo Larch | pyxargs -s "echo No 1. The {}" "echo And now... No 2. The {}"
+    note: the same input is used for replace-str in both commands
+    however the input will not be appended in the absence of a replace-str
 
     regular expressions can be used to filter and modify inputs
         pyxargs -r \.py --resub \.py .txt {} echo {}
