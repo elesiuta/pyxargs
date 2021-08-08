@@ -11,9 +11,10 @@ usage: pyxargs [options] command [initial-arguments ...]
 
 Build and execute command lines or python code from standard input or file
 paths, a mostly complete implementation of xargs in python with some added
-features. The default input mode (file) builds commands using filenames only
-and executes them in their respective directories, this is useful when dealing
-with file paths containing multiple character encodings.
+features. The file input mode (default if stdin is empty) builds commands
+using filenames only and executes them in their respective directories, this
+is useful when dealing with file paths containing multiple character
+encodings.
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -23,7 +24,7 @@ optional arguments:
   -b base-directory     default: os.getcwd()
   -m input-mode         options are:
                         file    = build commands from filenames and execute in
-                                  each subdirectory respectively (default)
+                                  each subdirectory respectively
                         path    = build commands from file paths relative to
                                   the base directory and execute in the base
                                   directory
@@ -33,6 +34,7 @@ optional arguments:
                                   of filenames
                         stdin   = build commands from standard input and
                                   execute in the base directory
+                        default: stdin unless empty, then file
   --symlinks            follow symlinks when scanning directories
   -0, --null            input items are terminated by a null character instead
                         of by whitespace, sets input-mode=stdin
@@ -75,15 +77,19 @@ optional arguments:
 ```
 ## Examples
 ```
-comparing usage with find & xargs
+comparing usage with find & xargs (these commands produce the same output)
     find ./ -name "*" -type f -print0 | xargs -0 -I {} echo {}
     find ./ -name "*" -type f -print0 | pyxargs -0 -I {} echo {}
+pyxargs does not require '-I' to specify a replace-str (default: {})
     find ./ -name "*" -type f -print0 | pyxargs -0 echo {}
+and in the absence of a replace-str, exactly one input is appended
+    find ./ -name "*" -type f -print0 | pyxargs -0 echo
+    find ./ -name "*" -type f -print0 | xargs -0 --max-args=1 echo
+    find ./ -name "*" -type f -print0 | xargs -0 --max-lines=1 echo
+pyxargs can use file paths as input without piping from another program
     pyxargs -m path echo ./{}
+you can also use python code as your command
     pyxargs -m path --py "print('./{}')"
-note: pyxargs requires a replace-str ({} in this example) to insert inputs,
-inputs are not appended in the absence of a replace-str like in xargs,
-this also implies the equivalent of xargs --max-lines=1
 
 use -- to separate options with multiple optional arguments from the command
     pyxargs --pre "print('spam')" "print('spam')" -- echo {}
@@ -94,8 +100,10 @@ the command takes all remaining arguments, so this will not work
 however pipes and redirects still work
     pyxargs echo {} > spam.txt
 
-multiple commands can be used as such
-    pyxargs -s "echo No 1. {}" "echo And now... No 2. {}"
+multiple commands can be used by providing them as strings with '-s' set
+    echo Larch | pyxargs -s "echo No 1. The {}" "echo And now... No 2. The {}"
+note: the same input is used for replace-str in both commands
+however the input will not be appended in the absence of a replace-str
 
 regular expressions can be used to filter and modify inputs
     pyxargs -r \.py --resub \.py .txt {} echo {}

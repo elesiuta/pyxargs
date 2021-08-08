@@ -325,13 +325,14 @@ def main() -> None:
               "The file input mode (default if stdin is empty) builds commands using filenames only and executes them in their respective directories, "
               "this is useful when dealing with file paths containing multiple character encodings.")
     examples = textwrap.dedent(r"""
-    comparing usage with find & xargs (all of these produce the same output)
+    comparing usage with find & xargs (these commands produce the same output)
         find ./ -name "*" -type f -print0 | xargs -0 -I {} echo {}
         find ./ -name "*" -type f -print0 | pyxargs -0 -I {} echo {}
     pyxargs does not require '-I' to specify a replace-str (default: {})
         find ./ -name "*" -type f -print0 | pyxargs -0 echo {}
     and in the absence of a replace-str, exactly one input is appended
         find ./ -name "*" -type f -print0 | pyxargs -0 echo
+        find ./ -name "*" -type f -print0 | xargs -0 --max-args=1 echo
         find ./ -name "*" -type f -print0 | xargs -0 --max-lines=1 echo
     pyxargs can use file paths as input without piping from another program
         pyxargs -m path echo ./{}
