@@ -26,7 +26,7 @@ import subprocess
 import multiprocessing
 
 
-VERSION = "1.3.0"
+VERSION = "1.3.1"
 user_namespace = {}
 
 
@@ -314,8 +314,11 @@ def executeCommand(command_dict: dict) -> list:
                     sys.stdout.write(result)
                     output.append(result)
             else:
-                subprocess.run(cmd)
-                output.append("subprocess.run")
+                if os.name == "nt":
+                    returncode = os.system(shlex.join(cmd))
+                else:
+                    returncode = subprocess.run(cmd).returncode
+                output.append(str(returncode))
         return output
 
 
