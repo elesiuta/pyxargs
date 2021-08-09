@@ -12,18 +12,20 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
+import argparse
+import contextlib
+import csv
+import datetime
+import io
+import multiprocessing
 import os
 import re
-import csv
-import sys
 import shlex
 import shutil
-import typing
-import argparse
-import datetime
-import textwrap
 import subprocess
-import multiprocessing
+import sys
+import textwrap
+import typing
 
 
 VERSION = "1.3.1"
@@ -299,8 +301,11 @@ def executeCommand(command_dict: dict) -> list:
                 colourPrint(cmd[0], "G")
             if args.py:
                 try:
-                    exec(cmd[0], globals(), user_namespace)
-                    output.append("EXEC SUCCESS")
+                    f = io.StringIO()
+                    with contextlib.redirect_stdout(f):
+                        exec(cmd[0], globals(), user_namespace)
+                    sys.stdout.write(f.getvalue())
+                    output.append(f.getvalue().strip())
                 except Exception as e:
                     output.append("EXEC ERROR: " + str(e))
             elif args.pyev:
@@ -314,7 +319,7 @@ def executeCommand(command_dict: dict) -> list:
                 with os.popen(shlex.join(cmd)) as result:
                     result = result.read()
                     sys.stdout.write(result)
-                    output.append(result)
+                    output.append(result.strip())
             else:
                 if os.name == "nt":
                     returncode = os.system(shlex.join(cmd))
