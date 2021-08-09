@@ -305,7 +305,9 @@ def executeCommand(command_dict: dict) -> list:
                     output.append("EXEC ERROR: " + str(e))
             elif args.pyev:
                 try:
-                    output.append(eval(cmd[0], globals(), user_namespace))
+                    result = eval(cmd[0], globals(), user_namespace)
+                    print(result)
+                    output.append(result)
                 except Exception as e:
                     output.append("EVAL ERROR: " + str(e))
             elif args.csv:
