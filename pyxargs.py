@@ -307,6 +307,7 @@ def executeCommand(command_dict: dict) -> list:
                     sys.stdout.write(f.getvalue())
                     output.append(f.getvalue().strip())
                 except Exception as e:
+                    print(str(e), file=sys.stderr)
                     output.append("EXEC ERROR: " + str(e))
             elif args.pyev:
                 try:
@@ -314,6 +315,7 @@ def executeCommand(command_dict: dict) -> list:
                     print(result)
                     output.append(result)
                 except Exception as e:
+                    print(str(e), file=sys.stderr)
                     output.append("EVAL ERROR: " + str(e))
             elif args.csv:
                 with os.popen(shlex.join(cmd)) as result:
