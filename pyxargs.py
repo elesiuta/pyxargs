@@ -106,7 +106,7 @@ def writeCsv(args: argparse.Namespace, file_dir: str, data: str) -> None:
 
 def processInput(args: argparse.Namespace, stdin: typing.Union[str, None]) -> list:
     command_dicts = []
-    append_input = not (args.py or args.pyev or args.command_strings or args.resub) and args.replace_str == "{}" and all("{}" not in arg for arg in args.command)
+    append_input = not (args.pyex or args.pyev or args.command_strings or args.resub) and args.replace_str == "{}" and all("{}" not in arg for arg in args.command)
     # build commands using standard input mode or by walking the directory tree
     if args.input_mode == "stdin":
         # set seperator
@@ -172,7 +172,7 @@ def processInput(args: argparse.Namespace, stdin: typing.Union[str, None]) -> li
 
 def processCommands(start_dir: str, command_dicts: list, args: argparse.Namespace) -> list:
     output = []
-    if args.py or args.pyev:
+    if args.pyex or args.pyev:
         cmd_join = lambda cmds: [cmd[0] for cmd in cmds]
     else:
         cmd_join = lambda cmds: [shlex.join(cmd) for cmd in cmds]
@@ -240,7 +240,7 @@ def buildCommand(dir_name: typing.Union[str, None], file_name: typing.Union[str,
         if (re.search(args.regex, arg_input) is not None) == args.regex_omit:
             return None
     # interpret command(s)
-    if args.py or args.pyev:
+    if args.pyex or args.pyev:
         if args.command_strings:
             commands = [[cmd] for cmd in args.command]
         else:
@@ -280,12 +280,12 @@ def executeCommand(command_dict: dict) -> list:
     # no run
     if args.dry_run:
         if len(cmds) > 1:
-            if args.py or args.pyev:
+            if args.pyex or args.pyev:
                 safePrint(str([cmd[0] for cmd in cmds]))
             else:
                 safePrint(str([shlex.join(cmd) for cmd in cmds]))
         else:
-            if args.py or args.pyev:
+            if args.pyex or args.pyev:
                 safePrint(cmds[0][0])
             else:
                 safePrint(shlex.join(cmds[0]))
@@ -299,7 +299,7 @@ def executeCommand(command_dict: dict) -> list:
         for cmd in cmds:
             if args.verbose:
                 colourPrint(cmd[0], "G")
-            if args.py:
+            if args.pyex:
                 try:
                     f = io.StringIO()
                     with contextlib.redirect_stdout(f):
@@ -424,7 +424,7 @@ def main() -> None:
                         help="omit inputs matching regex instead")
     parser.add_argument("-f", action="store_true", dest="regex_fname",
                         help="only match regex against filenames, ignoring full paths (if available)")
-    parser.add_argument("--py", action="store_true", dest="py",
+    parser.add_argument("--py", action="store_true", dest="pyex",
                         help="executes command(s) as python code using exec()")
     parser.add_argument("--pyev", action="store_true", dest="pyev",
                         help="evaluates command(s) as python expression(s) using eval()")
@@ -453,7 +453,7 @@ def main() -> None:
     if ((not os.path.isdir(args.base_dir)) or
         (args.max_procs <= 0) or
         (args.null and args.delim is not None) or
-        (args.py and args.pyev) or
+        (args.pyex and args.pyev) or
         (args.max_procs > 1 and args.interactive)):
         colourPrint("Invalid argument(s): %s" % (args), "R")
         sys.exit(1)
