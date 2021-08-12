@@ -106,7 +106,7 @@ def writeCsv(args: argparse.Namespace, file_dir: str, data: str) -> None:
 
 def processInput(args: argparse.Namespace, stdin: typing.Union[str, None]) -> list:
     command_dicts = []
-    append_input = not (args.py or args.pyev or args.command_strings) and args.replace_str == "{}" and all("{}" not in arg for arg in args.command)
+    append_input = not (args.py or args.pyev or args.command_strings or args.resub) and args.replace_str == "{}" and all("{}" not in arg for arg in args.command)
     # build commands using standard input mode or by walking the directory tree
     if args.input_mode == "stdin":
         # set seperator
