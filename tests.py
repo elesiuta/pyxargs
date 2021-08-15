@@ -62,7 +62,7 @@ class TestPyxargs(unittest.TestCase):
         with os.popen(cmd) as result:
             result = result.readlines()
             if os.name == "nt":
-                self.assertEqual(result, ['out .git\\config\n'])
+                self.assertEqual(result, ["out '.git\\config'\n"])
             else:
                 self.assertEqual(result, ['out .git/config\n'])
 
