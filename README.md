@@ -30,11 +30,13 @@ optional arguments:
                                   directory
                         abspath = build commands from file paths relative to
                                   root and execute in the base directory
-                        dir     = build commands from directory names instead
-                                  of filenames
                         stdin   = build commands from standard input and
                                   execute in the base directory
                         default: stdin unless empty, then file
+  --dir                 use folders instead files for modes: file, path,
+                        abspath
+  -t                    do not recurse into subdirectories for modes: file,
+                        path, abspath
   --symlinks            follow symlinks when scanning directories
   -0, --null            input items are terminated by a null character instead
                         of by whitespace, sets input-mode=stdin

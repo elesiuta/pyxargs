@@ -28,7 +28,7 @@ import textwrap
 import typing
 
 
-VERSION = "1.3.2"
+VERSION = "1.3.3"
 user_namespace = {}
 
 
@@ -143,29 +143,32 @@ def processInput(args: argparse.Namespace, stdin: typing.Union[str, None]) -> li
             commands = buildCommand(None, None, arg_input, append_input, args)
             if commands is not None:
                 command_dicts.append({"args": args, "dir": args.base_dir, "cmd": commands})
-    elif args.input_mode in ['file', 'path', 'abspath', 'dir']:
+    elif args.input_mode in ['file', 'path', 'abspath']:
         process_status = StatusBar("Building commands", 1, args.verbose)
         if args.verbose == True:
-            if args.input_mode == "dir":
+            if args.folders:
                 process_status.initTotal(sum(len(d) for r, d, f in os.walk(args.base_dir, topdown=False, followlinks=args.symlinks)))
             else:
                 process_status.initTotal(sum(len(f) for r, d, f in os.walk(args.base_dir, topdown=False, followlinks=args.symlinks)))
         # silly walk
         for dir_path, subdir_list, file_list in os.walk(args.base_dir, topdown=True, followlinks=args.symlinks):
             subdir_list.sort()
-            if args.input_mode == "dir":
+            if args.folders:
                 # build commands from directory names
-                process_status.update()
-                commands = buildCommand(dir_path, None, None, append_input, args)
-                if commands is not None:
-                    command_dicts.append({"args": args, "dir": dir_path, "cmd": commands})
-            elif args.input_mode in ["file", "path", "abspath"]:
+                for f in sorted(subdir_list):
+                    process_status.update()
+                    commands = buildCommand(dir_path, f, None, append_input, args)
+                    if commands is not None:
+                        command_dicts.append({"args": args, "dir": dir_path, "cmd": commands})
+            else:
                 # build commands from filenames or file paths
                 for f in sorted(file_list):
                     process_status.update()
                     commands = buildCommand(dir_path, f, None, append_input, args)
                     if commands is not None:
                         command_dicts.append({"args": args, "dir": dir_path, "cmd": commands})
+            if args.top_level:
+                break
     process_status.endProgress()
     return command_dicts
 
@@ -220,8 +223,6 @@ def buildCommand(dir_name: typing.Union[str, None], file_name: typing.Union[str,
     if arg_input is None:
         if args.input_mode == "file":
             arg_input = file_name
-        elif args.input_mode == "dir":
-            arg_input = dir_name
         elif args.input_mode == "path":
             arg_input = os.path.join(dir_name, file_name)
             arg_input = os.path.relpath(arg_input, args.base_dir)
@@ -387,7 +388,7 @@ def main() -> None:
                         help="support for multiple commands to be run sequentially by encapsulating in quotes (each its own string)")
     parser.add_argument("-b", type=str, default=os.getcwd(), metavar="base-directory", dest="base_dir",
                         help="default: os.getcwd()")
-    parser.add_argument("-m", type=str, default=None, metavar="input-mode", choices=['file', 'path', 'abspath', 'dir', 'stdin'], dest="input_mode",
+    parser.add_argument("-m", type=str, default=None, metavar="input-mode", choices=['file', 'path', 'abspath', 'stdin'], dest="input_mode",
                         help="F!\n"
                              "options are:\n"
                              "file    = build commands from filenames and execute in\n"
@@ -397,11 +398,13 @@ def main() -> None:
                              "          directory\n"
                              "abspath = build commands from file paths relative to\n"
                              "          root and execute in the base directory\n"
-                             "dir     = build commands from directory names instead\n"
-                             "          of filenames\n"
                              "stdin   = build commands from standard input and\n"
                              "          execute in the base directory\n"
                              "default: stdin unless empty, then file")
+    parser.add_argument("--dir", action="store_true", dest="folders",
+                        help="use folders instead files for modes: file, path, abspath")
+    parser.add_argument("-t", action="store_true", dest="top_level",
+                        help="do not recurse into subdirectories for modes: file, path, abspath")
     parser.add_argument("--symlinks", action="store_true", dest="symlinks",
                         help="follow symlinks when scanning directories")
     parser.add_argument("-0", "--null", action="store_true", dest="null",
