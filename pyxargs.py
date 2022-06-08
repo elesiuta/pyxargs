@@ -58,7 +58,7 @@ def build_commands(args: argparse.Namespace, stdin: str) -> list:
         arg_input_list = stdin.split(args.delim)
         # build commands from stdin
         for arg_input in arg_input_list:
-            command = build_command(args, None, None, arg_input, append_input)
+            command = build_command(args, "", "", arg_input, append_input)
             if command:
                 command_dicts.append({"dir": args.base_dir, "cmd": command})
     elif args.input_mode in ['file', 'path', 'abspath']:
@@ -67,13 +67,13 @@ def build_commands(args: argparse.Namespace, stdin: str) -> list:
             if args.folders:
                 # build commands from directory names
                 for folder_name in sorted(folder_list):
-                    command = build_command(args, dir_path, folder_name, None, append_input)
+                    command = build_command(args, dir_path, folder_name, "", append_input)
                     if command:
                         command_dicts.append({"dir": dir_path, "cmd": command})
             else:
                 # build commands from filenames or file paths
                 for file_name in sorted(file_list):
-                    command = build_command(args, dir_path, file_name, None, append_input)
+                    command = build_command(args, dir_path, file_name, "", append_input)
                     if command:
                         command_dicts.append({"dir": dir_path, "cmd": command})
             if args.top_level:
@@ -114,28 +114,27 @@ def execute_commands(args: argparse.Namespace, command_dicts: list) -> int:
     return 0
 
 
-def build_command(args: argparse.Namespace, dir_path: typing.Union[str, None], basename: typing.Union[str, None], arg_input: typing.Union[str, None], append_input: bool) -> list:
+def build_command(args: argparse.Namespace, dir_path: str, basename: str, arg_input: str, append_input: bool) -> list:
     # mode
-    if arg_input is None:
-        if args.input_mode == "file":
-            arg_input = basename
-        elif args.input_mode == "path":
-            arg_input = os.path.join(dir_path, basename)
-            arg_input = os.path.relpath(arg_input, args.base_dir)
-        elif args.input_mode == "abspath":
-            arg_input = os.path.join(dir_path, basename)
+    if args.input_mode == "file":
+        arg_input = basename
+    elif args.input_mode == "path":
+        arg_input = os.path.join(dir_path, basename)
+        arg_input = os.path.relpath(arg_input, args.base_dir)
+    elif args.input_mode == "abspath":
+        arg_input = os.path.join(dir_path, basename)
     # check re match
-    if not args.regex_basename and dir_path is not None and basename is not None:
+    if args.input_mode == "stdin":
+        if (re.search(args.regex, arg_input) is not None) == args.regex_omit:
+            return []
+    elif args.regex_basename:
+        if (re.search(args.regex, basename) is not None) == args.regex_omit:
+            return []
+    else:
         relpath = os.path.join(dir_path, basename)
         relpath = os.path.relpath(relpath, args.base_dir)
         if (re.search(args.regex, relpath) is not None) == args.regex_omit:
-            return None
-    elif args.regex_basename and basename is not None:
-        if (re.search(args.regex, basename) is not None) == args.regex_omit:
-            return None
-    else:
-        if (re.search(args.regex, arg_input) is not None) == args.regex_omit:
-            return None
+            return []
     # copy command
     command = [cmd for cmd in args.command]
     # re.sub input into command
@@ -153,7 +152,7 @@ def build_command(args: argparse.Namespace, dir_path: typing.Union[str, None], b
         if len(shlex.join(command)) > args.max_chars:
             if args.verbose:
                 colour_print(f"Command too long for: {arg_input}", "Y")
-            return None
+            return []
     # join command
     if args.pyex or args.pyev or args.subprocess_shell:
         if len(command) > 1:
@@ -208,6 +207,23 @@ def main() -> int:
               "The file input mode (default if stdin is empty) builds commands using filenames only and executes them in their respective directories, "
               "this is useful when dealing with file paths containing multiple character encodings.")
     examples = textwrap.dedent(r"""
+    by default, pyxargs will use filenames and run commands in each directory
+        pyxargs echo
+    instead of appending inputs, you can specify a location with {}
+        pyxargs echo spam {} spam
+    and like xargs, you can also specify the replace-str with -I
+        pyxargs -I eggs echo spam eggs spam literal {}
+    if stdin is not empty, it will be used instead of filenames by default
+        echo bacon eggs | pyxargs echo spam
+    python code can be used in place of a command
+        pyxargs --py "print(f'input file: {{}} executed in: {os.getcwd()}')"
+    python code can also run before or after all the commands
+        pyxargs --pre "n=0" --post "print(n,'files')" --py "n+=1"
+    regular expressions can be used to filter and modify inputs
+        pyxargs -r \.py --resub \.py .txt {} echo {}
+    the original inputs can easily be used with the substituted versions
+        pyxargs -r \.py --resub \.py .txt new echo {} new
+
     comparing usage with find & xargs (these commands produce the same output)
         find ./ -name "*" -type f -print0 | xargs -0 -I {} echo {}
         find ./ -name "*" -type f -print0 | pyxargs -0 -I {} echo {}
@@ -221,17 +237,6 @@ def main() -> int:
         pyxargs -m path echo ./{}
     and now for something completely different, python code for the command
         pyxargs -m path --py "print('./{}')"
-
-    the default input mode is file if stdin is empty
-        pyxargs --py "print(f'input: {{}} executed in: {os.getcwd()}')"
-
-    python code can also run before or after all the commands
-        pyxargs --pre "n=0" --post "print(n,'files')" --py "n+=1"
-
-    regular expressions can be used to filter and modify inputs
-        pyxargs -r \.py --resub \.py .txt {} echo {}
-    the original inputs can easily be used with the substituted versions
-        pyxargs -r \.py --resub \.py .txt new echo {} new
     """)
     parser = argparse.ArgumentParser(description=readme,
                                      formatter_class=lambda prog: ArgparseCustomFormatter(prog, max_help_position=24),
@@ -260,27 +265,27 @@ def main() -> int:
                              "          execute in the current directory\n"
                              "default: stdin unless empty, then file")
     parser.add_argument("--folders", action="store_true", dest="folders",
-                        help="use folders instead files, for input modes: file, path, abspath")
+                        help="use folders instead files (for input modes: file, path, abspath)")
     parser.add_argument("-t", "--top", action="store_true", dest="top_level",
-                        help="do not recurse into subdirectories, for input modes: file, path, abspath")
+                        help="do not recurse into subdirectories (for input modes: file, path, abspath)")
     parser.add_argument("--sym", "--symlinks", action="store_true", dest="symlinks",
-                        help="follow symlinks when scanning directories, for input modes: file, path, abspath")
+                        help="follow symlinks when scanning directories (for input modes: file, path, abspath)")
     group0.add_argument("-0", "--null", action="store_true", dest="null",
-                        help="input items are separated by a null character instead of whitespace, for input mode: stdin")
+                        help="input items are separated by a null character instead of whitespace (for input mode: stdin)")
     group0.add_argument("-d", "--delimiter", type=str, default=None, metavar="delim", dest="delim",
-                        help="input items are separated by the specified delimiter instead of whitespace, for input mode: stdin")
-    parser.add_argument("--max-chars", type=int, metavar="max-chars", dest="max_chars",
-                        help="omits any command line exceeding max-chars, no limit by default")
+                        help="input items are separated by the specified delimiter instead of whitespace (for input mode: stdin)")
+    parser.add_argument("--max-chars", type=int, metavar="n", dest="max_chars",
+                        help="omits any command line exceeding n characters, no limit by default")
     parser.add_argument("-I", action="store", type=str, default="{}", metavar="replace-str", dest="replace_str",
                         help="replace occurrences of replace-str in command with input, default: {}")
     parser.add_argument("--resub", nargs=3, type=str, metavar=("pattern", "substitution", "replace-str"), dest="resub",
                         help="replace occurrences of replace-str in command with re.sub(patten, substitution, input)")
     parser.add_argument("-r", type=str, default=".", metavar="regex", dest="regex",
-                        help="only build commands from inputs matching regex (for file, path, and abspath input modes, the relative path is searched)")
+                        help="only build commands from inputs matching regex for input mode stdin, and matching relative paths for all other input modes, uses re.search")
     parser.add_argument("-o", action="store_true", dest="regex_omit",
                         help="omit inputs matching regex instead")
     parser.add_argument("-b", action="store_true", dest="regex_basename",
-                        help="only match regex against basename of input, for input modes: file, path, abspath")
+                        help="only match regex against basename of input (for input modes: file, path, abspath)")
     group1.add_argument("-s", "--shell", action="store_true", dest="subprocess_shell",
                         help="executes commands through the shell (subprocess shell=True) (no effect on Windows)")
     group1.add_argument("--py", "--pyex", action="store_true", dest="pyex",
