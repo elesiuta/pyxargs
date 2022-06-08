@@ -13,6 +13,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+# https://github.com/elesiuta/pyxargs
+
 import argparse
 import os
 import re
@@ -24,7 +26,7 @@ import textwrap
 import typing
 
 
-__version__: typing.final(str) = "2.0.0-alpha"
+__version__: typing.Final[str] = "2.0.0"
 
 
 def replace_surrogates(string: str) -> str:
@@ -202,7 +204,7 @@ def main() -> int:
                 return text.splitlines()[1:]
             return argparse.HelpFormatter._split_lines(self, text, width)
     readme = ("Build and execute command lines or python code from standard input or file paths, "
-              "a mostly complete implementation of xargs in python with some added features. "
+              "a partial and opinionated implementation of xargs in python with some added features. "
               "The file input mode (default if stdin is empty) builds commands using filenames only and executes them in their respective directories, "
               "this is useful when dealing with file paths containing multiple character encodings.")
     examples = textwrap.dedent(r"""
@@ -274,11 +276,11 @@ def main() -> int:
     parser.add_argument("--resub", nargs=3, type=str, metavar=("pattern", "substitution", "replace-str"), dest="resub",
                         help="replace occurrences of replace-str in command with re.sub(patten, substitution, input)")
     parser.add_argument("-r", type=str, default=".", metavar="regex", dest="regex",
-                        help="only build commands from inputs matching regex")
+                        help="only build commands from inputs matching regex (for file, path, and abspath input modes, the relative path is searched)")
     parser.add_argument("-o", action="store_true", dest="regex_omit",
                         help="omit inputs matching regex instead")
     parser.add_argument("-b", action="store_true", dest="regex_basename",
-                        help="only match regex against basename of input, for input mode: file, path, abspath")
+                        help="only match regex against basename of input, for input modes: file, path, abspath")
     group1.add_argument("-s", "--shell", action="store_true", dest="subprocess_shell",
                         help="executes commands through the shell (subprocess shell=True) (no effect on Windows)")
     group1.add_argument("--py", "--pyex", action="store_true", dest="pyex",
@@ -318,7 +320,7 @@ def main() -> int:
     if args.null:
         args.delim = "\0"
     # enable shell on windows
-    if os.name == "nt":
+    if sys.platform.startswith("win32"):
         args.subprocess_shell = True
     # check for invalid arguments
     assert os.path.isdir(args.base_dir) and os.getcwd() == args.base_dir

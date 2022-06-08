@@ -1,13 +1,14 @@
 import setuptools
 import pyxargs
 
-with open("README.md", "r") as fh:
-    long_description = fh.read()
+with open("README.md", "r") as f:
+    long_description = f.read()
 
 setuptools.setup(
     name="pyxargs",
     version=pyxargs.__version__,
-    description="A mostly complete implementation of xargs in python with some added features",
+    python_requires=">=3.8",
+    description="A partial and opinionated implementation of xargs in python with some added features",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/elesiuta/pyxargs",
