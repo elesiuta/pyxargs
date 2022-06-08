@@ -27,12 +27,6 @@ class TestPyxargs(unittest.TestCase):
             result = result.readlines()
             self.assertEqual(result, ['out hello\n', 'out world\n'])
 
-    def test_multiple_commands(self):
-        cmd = "echo hello world | python pyxargs.py -m stdin -s \"echo out1 {}\" \"echo out2 {}\""
-        with os.popen(cmd) as result:
-            result = result.readlines()
-            self.assertEqual(result, ['out1 hello\n', 'out2 hello\n', 'out1 world\n', 'out2 world\n'])
-
     def test_read_files(self):
         cmd = "python pyxargs.py -r \"(\.git|__pycache__)\" -o echo out {}"
         with os.popen(cmd) as result:
@@ -46,13 +40,13 @@ class TestPyxargs(unittest.TestCase):
             self.assertEqual(result, [])
 
     def test_re_filter_file_name(self):
-        cmd = "python pyxargs.py -r \"\Aconfig\" -f echo out {}"
+        cmd = "python pyxargs.py -r \"\\Aconfig\" -b echo out {}"
         with os.popen(cmd) as result:
             result = result.readlines()
             self.assertEqual(result, ['out config\n'])
 
     def test_mode_path(self):
-        cmd = "python pyxargs.py -m path -r \"\Aconfig\" -f echo out {}"
+        cmd = "python pyxargs.py -m path -r \"\\Aconfig\" -b echo out {}"
         with os.popen(cmd) as result:
             result = result.readlines()
             if os.name == "nt":
@@ -115,19 +109,19 @@ class TestPyxargs(unittest.TestCase):
             self.assertEqual(result, ['hello\n', 'world\n', 'bye\n', 'world\n'])
 
     def test_pre_post_exec(self):
-        cmd = "echo hello world bye world | python pyxargs.py -m stdin --pre \"counter = 0\" --post \"print(counter)\" --py -s \"print('{}')\" \"counter += 1\""
+        cmd = "echo hello world bye world | python pyxargs.py -m stdin --pre \"counter = 0\" --post \"print(counter)\" --py \"print('{}'); counter += 1\""
         with os.popen(cmd) as result:
             result = result.readlines()
             self.assertEqual(result, ['hello\n', 'world\n', 'bye\n', 'world\n', '4\n'])
 
     def test_exec_namespace(self):
-        cmd = "echo hello world bye world | python pyxargs.py -m stdin --pre \"output = 0\"  --post \"print(locals())\" --py -s \"print('{}')\" \"output += 1\""
+        cmd = "echo hello world bye world | python pyxargs.py -m stdin --pre \"output = 0\"  --post \"print(locals())\" --py \"print('{}'); output += 1\""
         with os.popen(cmd) as result:
             result = result.readlines()
             self.assertEqual(result, ['hello\n', 'world\n', 'bye\n', 'world\n', "{'output': 4}\n"])
 
     def test_import(self):
-        cmd = "echo hello world bye world | python pyxargs.py -m stdin --import math --importstar math --pre \"output = 0\" --post \"print(output)\" --py -s \"print('{}')\" \"output += math.sin(pi/2)\""
+        cmd = "echo hello world bye world | python pyxargs.py -m stdin --import math --importstar math --pre \"output = 0\" --post \"print(output)\" --py \"print('{}'); output += math.sin(pi/2)\""
         with os.popen(cmd) as result:
             result = result.readlines()
             self.assertEqual(result, ['hello\n', 'world\n', 'bye\n', 'world\n', '4.0\n'])
@@ -153,17 +147,6 @@ class TestPyxargs(unittest.TestCase):
         with os.popen(cmd) as result:
             result = result.readlines()
             self.assertEqual(result, solution)
-
-    def test_read_items_file(self):
-        cmd = "python pyxargs.py -a test.txt echo out {}"
-        with open("test.txt", "r") as f:
-            file_content = f.readlines()
-        solution = []
-        for line in file_content:
-            solution.append("out " + line)
-        with os.popen(cmd) as result:
-            result = result.readlines()
-            self.assertListEqual(result, solution)
 
 if __name__ == '__main__':
     unittest.main()

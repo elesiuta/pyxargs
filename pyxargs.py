@@ -49,51 +49,45 @@ def safe_print(string: str) -> None:
 def build_commands(args: argparse.Namespace, stdin: str) -> list:
     command_dicts = []
     append_input = not (args.pyex or args.pyev or args.resub) and args.replace_str == "{}" and all("{}" not in arg for arg in args.command)
-    # interpret command
-    if args.pyex or args.pyev or args.subprocess_shell:
-        if len(args.command) > 1:
-            args.command = [shlex.join(args.command)]
     # build commands using standard input mode or by walking the directory tree
     if args.input_mode == "stdin":
-        # split stdin
+        # remove trailing whitespace and split stdin
         stdin = stdin.rstrip()
-        if args.null:
-            args.delim = "\0"
         arg_input_list = stdin.split(args.delim)
         # build commands from stdin
         for arg_input in arg_input_list:
-            command = build_command(None, None, arg_input, append_input, args)
+            command = build_command(args, None, None, arg_input, append_input)
             if command:
-                command_dicts.append({"args": args, "dir": args.base_dir, "cmd": command})
+                command_dicts.append({"dir": args.base_dir, "cmd": command})
     elif args.input_mode in ['file', 'path', 'abspath']:
-        for dir_path, subdir_list, file_list in os.walk(args.base_dir, topdown=True, followlinks=args.symlinks):
-            subdir_list.sort()
+        for dir_path, folder_list, file_list in os.walk(args.base_dir, topdown=True, followlinks=args.symlinks):
+            folder_list.sort()
             if args.folders:
                 # build commands from directory names
-                for f_name in sorted(subdir_list):
-                    command = build_command(dir_path, f_name, None, append_input, args)
+                for folder_name in sorted(folder_list):
+                    command = build_command(args, dir_path, folder_name, None, append_input)
                     if command:
-                        command_dicts.append({"args": args, "dir": dir_path, "cmd": command})
+                        command_dicts.append({"dir": dir_path, "cmd": command})
             else:
                 # build commands from filenames or file paths
-                for f_name in sorted(file_list):
-                    command = build_command(dir_path, f_name, None, append_input, args)
+                for file_name in sorted(file_list):
+                    command = build_command(args, dir_path, file_name, None, append_input)
                     if command:
-                        command_dicts.append({"args": args, "dir": dir_path, "cmd": command})
+                        command_dicts.append({"dir": dir_path, "cmd": command})
             if args.top_level:
                 break
     return command_dicts
 
 
-def execute_commands(command_dicts: list, args: argparse.Namespace) -> int:
+def execute_commands(args: argparse.Namespace, command_dicts: list) -> int:
     user_namespace = {}
     # pre execution tasks
     for i in args.imprt:
         exec(f"import {i}", globals(), user_namespace)
     for i in args.imprtstar:
         exec(f"from {i} import *", globals(), user_namespace)
-    for line in args.pre:
-        exec(line, globals(), user_namespace)
+    if args.pre:
+        exec(args.pre, globals(), user_namespace)
     # execute commands
     if args.interactive:
         for command_dict in command_dicts:
@@ -104,44 +98,44 @@ def execute_commands(command_dicts: list, args: argparse.Namespace) -> int:
             print("Run command (Yes/No/QUIT)?")
             run = input("> ")
             if run.lower().startswith("y"):
-                execute_command(command_dict, args)
+                execute_command(args, command_dict, user_namespace)
             elif run.lower().startswith("n"):
                 pass
             else:
                 return 4
     else:
         for command_dict in command_dicts:
-            execute_command(command_dict, args)
+            execute_command(args, command_dict, user_namespace)
     # post execution tasks
-    for line in args.post:
-        exec(line, globals(), user_namespace)
+    if args.post:
+        exec(args.post, globals(), user_namespace)
     return 0
 
 
-def build_command(dir_name: typing.Union[str, None], file_name: typing.Union[str, None], arg_input: typing.Union[str, None], append_input: bool, args: argparse.Namespace) -> list:
+def build_command(args: argparse.Namespace, dir_path: typing.Union[str, None], basename: typing.Union[str, None], arg_input: typing.Union[str, None], append_input: bool) -> list:
     # mode
     if arg_input is None:
         if args.input_mode == "file":
-            arg_input = file_name
+            arg_input = basename
         elif args.input_mode == "path":
-            arg_input = os.path.join(dir_name, file_name)
+            arg_input = os.path.join(dir_path, basename)
             arg_input = os.path.relpath(arg_input, args.base_dir)
         elif args.input_mode == "abspath":
-            arg_input = os.path.join(dir_name, file_name)
+            arg_input = os.path.join(dir_path, basename)
     # check re match
-    if not args.regex_fname and dir_name is not None and file_name is not None:
-        relpath = os.path.join(dir_name, file_name)
+    if not args.regex_basename and dir_path is not None and basename is not None:
+        relpath = os.path.join(dir_path, basename)
         relpath = os.path.relpath(relpath, args.base_dir)
         if (re.search(args.regex, relpath) is not None) == args.regex_omit:
             return None
-    elif args.regex_fname and file_name is not None:
-        if (re.search(args.regex, file_name) is not None) == args.regex_omit:
+    elif args.regex_basename and basename is not None:
+        if (re.search(args.regex, basename) is not None) == args.regex_omit:
             return None
     else:
         if (re.search(args.regex, arg_input) is not None) == args.regex_omit:
             return None
     # copy command
-    command = [[cmd] for cmd in args.command]
+    command = [cmd for cmd in args.command]
     # re.sub input into command
     if args.resub is not None:
         for i in range(len(command)):
@@ -149,8 +143,6 @@ def build_command(dir_name: typing.Union[str, None], file_name: typing.Union[str
     # sub input into command or append
     if append_input:
         command.append(arg_input)
-        if args.subprocess_shell:
-            command = [shlex.join([command])]
     else:
         for i in range(len(command)):
             command[i] = command[i].replace(args.replace_str, arg_input)
@@ -160,16 +152,19 @@ def build_command(dir_name: typing.Union[str, None], file_name: typing.Union[str
             if args.verbose:
                 colour_print(f"Command too long for: {arg_input}", "Y")
             return None
+    # join command
+    if args.pyex or args.pyev or args.subprocess_shell:
+        if len(command) > 1:
+            command = [shlex.join(command)]
     # and finally
     return command
 
 
-def execute_command(command_dict: dict, user_namespace: dict, args: argparse.Namespace) -> None:
-    args = command_dict["args"]
-    dir_name = command_dict["dir"]
+def execute_command(args: argparse.Namespace, command_dict: dict, user_namespace: dict) -> None:
+    dir_path = command_dict["dir"]
     cmd = command_dict["cmd"]
     if args.input_mode == "file":
-        os.chdir(dir_name)
+        os.chdir(dir_path)
     if args.dry_run:
         if len(cmd) == 1:
             safe_print(cmd[0])
@@ -192,8 +187,10 @@ def execute_command(command_dict: dict, user_namespace: dict, args: argparse.Nam
                 print(result)
             except Exception as e:
                 print(str(e), file=sys.stderr)
+        elif args.subprocess_shell:
+            subprocess.run(cmd[0], shell=True)
         else:
-            subprocess.run(cmd, shell=args.subprocess_shell)
+            subprocess.run(cmd, shell=False)
 
 
 def main() -> int:
@@ -280,17 +277,17 @@ def main() -> int:
                         help="only build commands from inputs matching regex")
     parser.add_argument("-o", action="store_true", dest="regex_omit",
                         help="omit inputs matching regex instead")
-    parser.add_argument("-b", action="store_true", dest="regex_fname",
-                        help="only match regex against os.path.basename(input)")
+    parser.add_argument("-b", action="store_true", dest="regex_basename",
+                        help="only match regex against basename of input, for input mode: file, path, abspath")
     group1.add_argument("-s", "--shell", action="store_true", dest="subprocess_shell",
-                        help="executes commands through the shell (subprocess shell=True)")
+                        help="executes commands through the shell (subprocess shell=True) (no effect on Windows)")
     group1.add_argument("--py", "--pyex", action="store_true", dest="pyex",
                         help="executes commands as python code using exec()")
     group1.add_argument("--pyev", action="store_true", dest="pyev",
                         help="evaluates commands as python expressions using eval()")
-    parser.add_argument("--import", action="append", type=str, metavar=("library"), dest="imprt",
+    parser.add_argument("--import", action="append", type=str, default=[], metavar=("library"), dest="imprt",
                         help="executes 'import <library>' for each library")
-    parser.add_argument("--im", "--importstar", action="append", type=str, metavar=("library"), dest="imprtstar",
+    parser.add_argument("--im", "--importstar", action="append", type=str, default=[], metavar=("library"), dest="imprtstar",
                         help="executes 'from <library> import *' for each library")
     parser.add_argument("--pre", type=str, default="", metavar=("\"code\""), dest="pre",
                         help="runs exec(code) before execution")
@@ -306,9 +303,6 @@ def main() -> int:
     if args.examples:
         print(examples)
         return 0
-    # only needed if there is an option with nargs + or *
-    # if len(args.command) >= 1 and args.command[0] == "--":
-    #     _ = args.command.pop(0)
     # determine input mode and read stdin available or required
     stdin = ""
     if args.input_mode is None:
@@ -320,19 +314,26 @@ def main() -> int:
             args.input_mode = "file"
     elif args.input_mode == "stdin":
         stdin = sys.stdin.read()
+    # set delimiter
+    if args.null:
+        args.delim = "\0"
+    # enable shell on windows
+    if os.name == "nt":
+        args.subprocess_shell = True
     # check for invalid arguments
     assert os.path.isdir(args.base_dir) and os.getcwd() == args.base_dir
     if args.input_mode == "stdin":
         assert not args.folders, "invalid option for input mode: stdin"
         assert not args.top_level, "invalid option for input mode: stdin"
         assert not args.symlinks, "invalid option for input mode: stdin"
+        assert not args.regex_basename, "invalid option for input mode: stdin"
     else:
         assert not args.null, f"invalid option for input mode: {args.input_mode}"
         assert not args.delim, f"invalid option for input mode: {args.input_mode}"
     # build and run commands
     if len(args.command) >= 1:
         command_dicts = build_commands(args, stdin)
-        return execute_commands(command_dicts, args)
+        return execute_commands(args, command_dicts)
     else:
         parser.print_usage()
         return 2
