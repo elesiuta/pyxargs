@@ -251,7 +251,7 @@ def main() -> int:
     parser.add_argument("--version", action="version", version=__version__)
     parser.add_argument("--base-directory", type=str, default=os.getcwd(), metavar="base-directory", dest="base_dir",
                         help=argparse.SUPPRESS)
-    parser.add_argument("-m", type=str, default=None, metavar="input-mode", choices=['file', 'path', 'abspath', 'stdin'], dest="input_mode",
+    parser.add_argument("-m", type=str, default=None, metavar="input-mode", choices=['file', 'path', 'abspath', 'stdin', "f", "p", "a", "s"], dest="input_mode",
                         help="F!\n"
                              "options are:\n"
                              "file    = build commands from filenames and execute in\n"
@@ -312,6 +312,9 @@ def main() -> int:
         return 0
     # determine input mode and read stdin available or required
     stdin = ""
+    if args.input_mode in ["f", "p", "a", "s"]:
+        short_forms = {"f": "file", "p": "path", "a": "abspath", "s": "stdin"}
+        args.input_mode = short_forms[args.input_mode]
     if args.input_mode is None:
         if not sys.stdin.isatty():
             stdin = sys.stdin.read()
