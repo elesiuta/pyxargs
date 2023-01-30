@@ -204,7 +204,7 @@ def main() -> int:
             return argparse.HelpFormatter._split_lines(self, text, width)
     readme = ("Build and execute command lines or python code from standard input or file paths, "
               "a partial and opinionated implementation of xargs in python with some added features. "
-              "The file input mode (default if stdin is empty) builds commands using filenames only and executes them in their respective directories, "
+              "The file input mode (default if stdin is not connected) builds commands using filenames only and executes them in their respective directories, "
               "this is useful when dealing with file paths containing multiple character encodings.")
     examples = textwrap.dedent(r"""
     by default, pyxargs will use filenames and run commands in each directory
@@ -213,7 +213,7 @@ def main() -> int:
         pyxargs echo spam {} spam
     and like xargs, you can also specify the replace-str with -I
         pyxargs -I eggs echo spam eggs spam literal {}
-    if stdin is not empty, it will be used instead of filenames by default
+    if stdin is connected, it will be used instead of filenames by default
         echo bacon eggs | pyxargs echo spam
     python code can be used in place of a command
         pyxargs --py "print(f'input file: {{}} executed in: {os.getcwd()}')"
@@ -263,7 +263,7 @@ def main() -> int:
                              "          execute in the current directory\n"
                              "stdin   = build commands from standard input and\n"
                              "          execute in the current directory\n"
-                             "default: stdin unless empty, then file")
+                             "default: stdin if connected, otherwise file")
     parser.add_argument("--folders", action="store_true", dest="folders",
                         help="use folders instead files (for input modes: file, path, abspath)")
     parser.add_argument("-t", "--top", action="store_true", dest="top_level",
@@ -315,7 +315,6 @@ def main() -> int:
     if args.input_mode is None:
         if not sys.stdin.isatty():
             stdin = sys.stdin.read()
-        if stdin:
             args.input_mode = "stdin"
         else:
             args.input_mode = "file"

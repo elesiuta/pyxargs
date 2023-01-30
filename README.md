@@ -12,12 +12,12 @@ usage: pyxargs [options] command [initial-arguments ...]
 
 Build and execute command lines or python code from standard input or file
 paths, a partial and opinionated implementation of xargs in python with some
-added features. The file input mode (default if stdin is empty) builds
+added features. The file input mode (default if stdin is not connected) builds
 commands using filenames only and executes them in their respective
 directories, this is useful when dealing with file paths containing multiple
 character encodings.
 
-options:
+optional arguments:
   -h, --help            show this help message and exit
   --examples            print example usage
   --version             show program's version number and exit
@@ -31,7 +31,7 @@ options:
                                   execute in the current directory
                         stdin   = build commands from standard input and
                                   execute in the current directory
-                        default: stdin unless empty, then file
+                        default: stdin if connected, otherwise file
   --folders             use folders instead files (for input modes: file,
                         path, abspath)
   -t, --top             do not recurse into subdirectories (for input modes:
@@ -78,7 +78,7 @@ instead of appending inputs, you can specify a location with {}
     pyxargs echo spam {} spam
 and like xargs, you can also specify the replace-str with -I
     pyxargs -I eggs echo spam eggs spam literal {}
-if stdin is not empty, it will be used instead of filenames by default
+if stdin is connected, it will be used instead of filenames by default
     echo bacon eggs | pyxargs echo spam
 python code can be used in place of a command
     pyxargs --py "print(f'input file: {{}} executed in: {os.getcwd()}')"
