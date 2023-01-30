@@ -26,7 +26,7 @@ import textwrap
 import typing
 
 
-__version__: typing.Final[str] = "2.0.0"
+__version__: typing.Final[str] = "2.1.0"
 
 
 def replace_surrogates(string: str) -> str:
