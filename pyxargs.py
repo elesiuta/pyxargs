@@ -26,7 +26,7 @@ import textwrap
 import typing
 
 
-__version__: typing.Final[str] = "2.1.0"
+__version__: typing.Final[str] = "2.1.1"
 
 
 def replace_surrogates(string: str) -> str:
@@ -50,7 +50,8 @@ def safe_print(string: str) -> None:
 
 def build_commands(args: argparse.Namespace, stdin: str) -> list:
     command_dicts = []
-    append_input = not (args.pyex or args.pyev or args.resub) and args.replace_str == "{}" and all("{}" not in arg for arg in args.command)
+    append_input = not (args.pyex or args.pyev or args.resub) and args.replace_str is None and all("{}" not in arg for arg in args.command)
+    args.replace_str = "{}" if args.replace_str is None else args.replace_str
     # build commands using standard input mode or by walking the directory tree
     if args.input_mode == "stdin":
         # remove trailing whitespace and split stdin
@@ -276,7 +277,7 @@ def main() -> int:
                         help="input items are separated by the specified delimiter instead of whitespace (for input mode: stdin)")
     parser.add_argument("--max-chars", type=int, metavar="n", dest="max_chars",
                         help="omits any command line exceeding n characters, no limit by default")
-    parser.add_argument("-I", action="store", type=str, default="{}", metavar="replace-str", dest="replace_str",
+    parser.add_argument("-I", action="store", type=str, default=None, metavar="replace-str", dest="replace_str",
                         help="replace occurrences of replace-str in command with input, default: {}")
     parser.add_argument("--resub", nargs=3, type=str, metavar=("pattern", "substitution", "replace-str"), dest="resub",
                         help="replace occurrences of replace-str in command with re.sub(patten, substitution, input)")
@@ -332,13 +333,14 @@ def main() -> int:
     # check for invalid arguments
     assert os.path.isdir(args.base_dir) and os.getcwd() == args.base_dir
     if args.input_mode == "stdin":
-        assert not args.folders, "invalid option for input mode: stdin"
-        assert not args.top_level, "invalid option for input mode: stdin"
-        assert not args.symlinks, "invalid option for input mode: stdin"
-        assert not args.regex_basename, "invalid option for input mode: stdin"
+        assert not args.interactive, "invalid option --interactive for input mode: stdin"
+        assert not args.folders, "invalid option --folders for input mode: stdin"
+        assert not args.top_level, "invalid option --top for input mode: stdin"
+        assert not args.symlinks, "invalid option --symlinks for input mode: stdin"
+        assert not args.regex_basename, "invalid option -b for input mode: stdin"
     else:
-        assert not args.null, f"invalid option for input mode: {args.input_mode}"
-        assert not args.delim, f"invalid option for input mode: {args.input_mode}"
+        assert not args.null, f"invalid option --null for input mode: {args.input_mode}"
+        assert not args.delim, f"invalid option --delimiter for input mode: {args.input_mode}"
     # build and run commands
     if len(args.command) >= 1:
         command_dicts = build_commands(args, stdin)
