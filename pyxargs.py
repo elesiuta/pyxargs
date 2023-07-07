@@ -26,7 +26,7 @@ import textwrap
 import typing
 
 
-__version__: typing.Final[str] = "2.1.1"
+__version__: typing.Final[str] = "2.2.0"
 
 
 def replace_surrogates(string: str) -> str:
@@ -208,36 +208,47 @@ def main() -> int:
               "The file input mode (default if stdin is not connected) builds commands using filenames only and executes them in their respective directories, "
               "this is useful when dealing with file paths containing multiple character encodings.")
     examples = textwrap.dedent(r"""
-    by default, pyxargs will use filenames and run commands in each directory
-        pyxargs echo
-    instead of appending inputs, you can specify a location with {}
-        pyxargs echo spam {} spam
-    and like xargs, you can also specify the replace-str with -I
-        pyxargs -I eggs echo spam eggs spam literal {}
-    if stdin is connected, it will be used instead of filenames by default
-        echo bacon eggs | pyxargs echo spam
-    python code can be used in place of a command
-        pyxargs --py "print(f'input file: {{}} executed in: {os.getcwd()}')"
-    python code can also run before or after all the commands
-        pyxargs --pre "n=0" --post "print(n,'files')" --py "n+=1"
-    regular expressions can be used to filter and modify inputs
-        pyxargs -r \.py --resub \.py .txt {} echo {}
-    the original inputs can easily be used with the substituted versions
-        pyxargs -r \.py --resub \.py .txt new echo {} new
+    # by default, pyxargs will use filenames and run commands in each directory
+      > pyxargs echo
 
-    comparing usage with find & xargs (these commands produce the same output)
-        find ./ -name "*" -type f -print0 | xargs -0 -I {} echo {}
-        find ./ -name "*" -type f -print0 | pyxargs -0 -I {} echo {}
-    pyxargs does not require '-I' to specify a replace-str (default: {})
-        find ./ -name "*" -type f -print0 | pyxargs -0 echo {}
-    and in the absence of a replace-str, exactly one input is appended
-        find ./ -name "*" -type f -print0 | pyxargs -0 echo
-        find ./ -name "*" -type f -print0 | xargs -0 --max-args=1 echo
-        find ./ -name "*" -type f -print0 | xargs -0 --max-lines=1 echo
-    pyxargs can use file paths as input without piping from another program
-        pyxargs -m path echo ./{}
-    and now for something completely different, python code for the command
-        pyxargs -m path --py "print('./{}')"
+    # instead of appending inputs, you can specify a location with {}
+      > pyxargs echo spam {} spam
+
+    # and like xargs, you can also specify the replace-str with -I
+      > pyxargs -I eggs echo spam eggs spam literal {}
+
+    # if stdin is connected, it will be used instead of filenames by default
+      > echo bacon eggs | pyxargs echo spam
+
+    # python code can be used in place of a command
+      > pyxargs --py "print(f'input file: {{}} executed in: {os.getcwd()}')"
+
+    # python code can also run before or after all the commands
+      > pyxargs --pre "n=0" --post "print(n,'files')" --py "n+=1"
+
+    # regular expressions can be used to filter and modify inputs
+      > pyxargs -r \.py --resub \.py .txt {} echo {}
+
+    # the original inputs can easily be used with the substituted versions
+      > pyxargs -r \.py --resub \.py .txt new echo {} new
+
+    # this and the following examples will compare usage with find & xargs
+      > find ./ -name "*" -type f -print0 | xargs -0 -I {} echo {}
+      > find ./ -name "*" -type f -print0 | pyxargs -0 -I {} echo {}
+
+    # pyxargs does not require '-I' to specify a replace-str (default: {})
+      > find ./ -name "*" -type f -print0 | pyxargs -0 echo {}
+
+    # and in the absence of a replace-str, exactly one input is appended
+      > find ./ -name "*" -type f -print0 | pyxargs -0 echo
+      > find ./ -name "*" -type f -print0 | xargs -0 --max-args=1 echo
+      > find ./ -name "*" -type f -print0 | xargs -0 --max-lines=1 echo
+
+    # pyxargs can use file paths as input without piping from another program
+      > pyxargs -m path echo ./{}
+
+    # and now for something completely different, python code for the command
+      > pyxargs -m path --py "print('./{}')"
     """)
     parser = argparse.ArgumentParser(description=readme,
                                      formatter_class=lambda prog: ArgparseCustomFormatter(prog, max_help_position=24),
@@ -248,7 +259,7 @@ def main() -> int:
     parser.add_argument("command", action="store", type=str, nargs=argparse.REMAINDER,
                         help=argparse.SUPPRESS)
     parser.add_argument("--examples", action="store_true", dest="examples",
-                        help="print example usage")
+                        help="show example usage and exit")
     parser.add_argument("--version", action="version", version=__version__)
     parser.add_argument("--base-directory", type=str, default=os.getcwd(), metavar="base-directory", dest="base_dir",
                         help=argparse.SUPPRESS)
@@ -324,6 +335,9 @@ def main() -> int:
             args.input_mode = "file"
     elif args.input_mode == "stdin":
         stdin = sys.stdin.read()
+    # need to open new tty for interactive mode if input was read from stdin
+    if args.interactive and stdin:
+        sys.stdin = open("/dev/tty")
     # set delimiter
     if args.null:
         args.delim = "\0"
@@ -333,7 +347,6 @@ def main() -> int:
     # check for invalid arguments
     assert os.path.isdir(args.base_dir) and os.getcwd() == args.base_dir
     if args.input_mode == "stdin":
-        assert not args.interactive, "invalid option --interactive for input mode: stdin"
         assert not args.folders, "invalid option --folders for input mode: stdin"
         assert not args.top_level, "invalid option --top for input mode: stdin"
         assert not args.symlinks, "invalid option --symlinks for input mode: stdin"
