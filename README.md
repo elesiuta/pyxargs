@@ -65,6 +65,9 @@ options:
                         executes 'from <library> import *' for each library
   --pre "code"          runs exec(code) before execution
   --post "code"         runs exec(code) after execution
+  -P P, --procs P       split into P chunks and execute each chunk in parallel
+                        as a separate process and window with byobu or tmux
+  -c c, --chunk c       runs chunk c of P (0 <= c < P) (without multiplexer)
   -i, --interactive     prompt the user before executing each command, only
                         proceeds if response starts with 'y' or 'Y'
   -n, --dry-run         prints commands without executing them
