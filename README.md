@@ -38,10 +38,11 @@ options:
                         file, path, abspath)
   --sym, --symlinks     follow symlinks when scanning directories (for input
                         modes: file, path, abspath)
+  -a f, --arg-file f    read input items from file instead of standard input
+                        (for input mode: stdin)
   -0, --null            input items are separated by a null character instead
                         of whitespace (for input mode: stdin)
-  -d delim, --delimiter delim
-                        input items are separated by the specified delimiter
+  -d d, --delimiter d   input items are separated by the specified delimiter
                         instead of whitespace (for input mode: stdin)
   --max-chars n         omits any command line exceeding n characters, no
                         limit by default

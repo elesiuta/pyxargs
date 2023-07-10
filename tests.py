@@ -132,6 +132,17 @@ class TestPyxargs(unittest.TestCase):
             result = result.readlines()
             self.assertEqual(result, ['echo out hello\n', 'echo out world\n'])
 
+    def test_read_items_file(self):
+        cmd = "python pyxargs.py -a test.txt echo out {}"
+        with open("test.txt", "r") as f:
+            file_content = f.readlines()
+        solution = []
+        for line in file_content:
+            solution.append("out " + line)
+        with os.popen(cmd) as result:
+            result = result.readlines()
+            self.assertListEqual(result, solution)
+
     def test_read_items_cat_type(self):
         if os.name == "nt":
             cmd = "type test.txt | python pyxargs.py -m stdin echo out {}"

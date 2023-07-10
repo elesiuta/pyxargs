@@ -291,9 +291,11 @@ def main() -> int:
                         help="do not recurse into subdirectories (for input modes: file, path, abspath)")
     parser.add_argument("--sym", "--symlinks", action="store_true", dest="symlinks",
                         help="follow symlinks when scanning directories (for input modes: file, path, abspath)")
+    parser.add_argument("-a", "--arg-file", type=str, default=None, metavar="f", dest="arg_file",
+                        help="read input items from file instead of standard input (for input mode: stdin)")
     group0.add_argument("-0", "--null", action="store_true", dest="null",
                         help="input items are separated by a null character instead of whitespace (for input mode: stdin)")
-    group0.add_argument("-d", "--delimiter", type=str, default=None, metavar="delim", dest="delim",
+    group0.add_argument("-d", "--delimiter", type=str, default=None, metavar="d", dest="delim",
                         help="input items are separated by the specified delimiter instead of whitespace (for input mode: stdin)")
     parser.add_argument("--max-chars", type=int, metavar="n", dest="max_chars",
                         help="omits any command line exceeding n characters, no limit by default")
@@ -346,6 +348,10 @@ def main() -> int:
         args.input_mode = short_forms[args.input_mode]
     if args.command_pickle is not None:
         args.input_mode = args.command_pickle[0]
+    elif args.arg_file is not None and (args.input_mode is None or args.input_mode == "stdin"):
+        with open(args.arg_file, "r") as f:
+            stdin = f.read()
+        args.input_mode = "stdin"
     elif args.input_mode is None:
         if not sys.stdin.isatty():
             stdin = sys.stdin.read()
@@ -355,7 +361,7 @@ def main() -> int:
     elif args.input_mode == "stdin":
         stdin = sys.stdin.read()
     # need to open new tty for interactive mode if input was read from stdin
-    if args.interactive and stdin:
+    if args.interactive and stdin and args.arg_file is None:
         sys.stdin = open("/dev/tty")
     # set delimiter
     if args.null:
@@ -372,7 +378,8 @@ def main() -> int:
         assert not args.regex_basename, "invalid option -b for input mode: stdin"
     else:
         assert not args.null, f"invalid option --null for input mode: {args.input_mode}"
-        assert not args.delim, f"invalid option --delimiter for input mode: {args.input_mode}"
+        assert args.delim is None, f"invalid option --delimiter for input mode: {args.input_mode}"
+        assert args.arg_file is None, f"invalid option --arg-file for input mode: {args.input_mode}"
     assert args.procs is None or args.procs > 0, "invalid option --procs: requires P > 0"
     assert args.chunk is None or args.procs is not None, "invalid option --chunk: --procs must be specified"
     assert args.chunk is None or 0 <= args.chunk < args.procs, "invalid option --chunk: requires 0 <= c < P"
