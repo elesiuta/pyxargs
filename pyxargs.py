@@ -16,6 +16,7 @@
 # https://github.com/elesiuta/pyxargs
 
 import argparse
+import multiprocessing
 import os
 import pickle
 import pty
@@ -111,6 +112,9 @@ def execute_commands(args: argparse.Namespace, command_dicts: list) -> int:
                 pass
             else:
                 return 4
+    elif args.no_mux:
+        with multiprocessing.Pool(args.procs) as pool:
+            pool.starmap(execute_command, [(args, command_dict, user_namespace) for command_dict in command_dicts])
     else:
         for command_dict in command_dicts:
             execute_command(args, command_dict, user_namespace)
@@ -323,6 +327,8 @@ def main() -> int:
                         help="runs chunk c of P (0 <= c < P) (without multiplexer)")
     parser.add_argument("--_command_pickle", nargs=2, default=None, dest="command_pickle",
                         help=argparse.SUPPRESS)
+    parser.add_argument("--no-mux", action="store_true", dest="no_mux",
+                        help="do not use a multiplexer for multiple processes")
     parser.add_argument("-i", "--interactive", action="store_true", dest="interactive",
                         help="prompt the user before executing each command, only proceeds if response starts with 'y' or 'Y'")
     parser.add_argument("-n", "--dry-run", action="store_true", dest="dry_run",
@@ -371,6 +377,9 @@ def main() -> int:
     assert args.chunk is None or args.procs is not None, "invalid option --chunk: --procs must be specified"
     assert args.chunk is None or 0 <= args.chunk < args.procs, "invalid option --chunk: requires 0 <= c < P"
     assert args.command_pickle is None or args.chunk is not None, "invalid option --_command_pickle: --chunk must be specified"
+    assert not args.no_mux or args.procs is not None, "invalid option --no-mux: --procs must be specified"
+    assert not args.no_mux or args.chunk is None, "invalid option --no-mux: --chunk must not be specified"
+    assert not args.no_mux or not args.interactive, "invalid option --no-mux: interactive mode not supported"
     # build and run commands
     if len(args.command) >= 1:
         # build commands or load them from pickle if available
@@ -380,7 +389,7 @@ def main() -> int:
             with open(args.command_pickle[1], "rb") as f:
                 command_dicts = pickle.load(f)
         # run subprocesses with multiplexer if requested
-        if args.procs is not None and args.chunk is None:
+        if args.procs is not None and args.chunk is None and not args.no_mux:
             multiplexer = "byobu" if shutil.which("byobu") else "tmux" if shutil.which("tmux") else None
             assert multiplexer is not None, "multiplexer not found: install byobu or tmux"
             session = time.strftime("pyxargs_%Y%m%d_%H%M%S")

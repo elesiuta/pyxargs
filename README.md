@@ -68,6 +68,7 @@ options:
   -P P, --procs P       split into P chunks and execute each chunk in parallel
                         as a separate process and window with byobu or tmux
   -c c, --chunk c       runs chunk c of P (0 <= c < P) (without multiplexer)
+  --no-mux              do not use a multiplexer for multiple processes
   -i, --interactive     prompt the user before executing each command, only
                         proceeds if response starts with 'y' or 'Y'
   -n, --dry-run         prints commands without executing them
