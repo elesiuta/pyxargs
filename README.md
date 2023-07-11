@@ -38,14 +38,21 @@ options:
                         file, path, abspath)
   --sym, --symlinks     follow symlinks when scanning directories (for input
                         modes: file, path, abspath)
-  -a f, --arg-file f    read input items from file instead of standard input
+  -a file, --arg-file file
+                        read input items from file instead of standard input
                         (for input mode: stdin)
   -0, --null            input items are separated by a null character instead
                         of whitespace (for input mode: stdin)
-  -d d, --delimiter d   input items are separated by the specified delimiter
+  -d delim, --delimiter delim
+                        input items are separated by the specified delimiter
                         instead of whitespace (for input mode: stdin)
-  --max-chars n         omits any command line exceeding n characters, no
-                        limit by default
+  -s regex, --split regex
+                        split each input item with re.split(regex, input)
+                        before building command (after separating by
+                        delimiter), use {0}, {1}, ... to specify placement
+                        (implies --format)
+  -f, --format          format command with input using str.format() instead
+                        of appending or replacing via -I replace-str
   -I replace-str        replace occurrences of replace-str in command with
                         input, default: {}
   --resub pattern substitution replace-str
@@ -57,7 +64,9 @@ options:
   -o                    omit inputs matching regex instead
   -b                    only match regex against basename of input (for input
                         modes: file, path, abspath)
-  -s, --shell           executes commands through the shell (subprocess
+  --max-chars n         omits any command line exceeding n characters, no
+                        limit by default
+  --sh, --shell         executes commands through the shell (subprocess
                         shell=True) (no effect on Windows)
   --py, --pyex          executes commands as python code using exec()
   --pyev                evaluates commands as python expressions using eval()
@@ -90,16 +99,27 @@ options:
   > echo bacon eggs | pyxargs echo spam
 
 # python code can be used in place of a command
-  > pyxargs --py "print(f'input file: {{}} executed in: {os.getcwd()}')"
+  > pyxargs --py "print(f'input file: {} executed in: {os.getcwd()}')"
 
 # python code can also run before or after all the commands
   > pyxargs --pre "n=0" --post "print(n,'files')" --py "n+=1"
 
 # regular expressions can be used to filter and modify inputs
-  > pyxargs -r \.py --resub \.py .txt {} echo {}
+  > pyxargs -r \.py --resub \.py .txt {new} echo {} -\> {new}
 
-# the original inputs can easily be used with the substituted versions
-  > pyxargs -r \.py --resub \.py .txt new echo {} new
+# you can test your command first with --dry-run (-n) or --interactive (-i)
+  > pyxargs -i echo filename: {}
+
+# pyxargs can also run interactively in parallel by using byobu or tmux
+  > pyxargs -P 4 -i echo filename: {}
+
+# you can use pyxargs to create a JSON mapping of /etc/hosts
+  > cat /etc/hosts | pyxargs -d \n --im json --pre "d={}" \
+    --post "print(dumps(d))" --py "d['{}'.split()[0]] = '{}'.split()[1]"
+
+# you can also do this with format strings and --split (-s) (uses regex)
+  > cat /etc/hosts | pyxargs -d \n -s "\s+" --im json --pre "d={}" \
+    --post "print(dumps(d))" --py "d['{0}'] = '{1}'"
 
 # this and the following examples will compare usage with find & xargs
   > find ./ -name "*" -type f -print0 | xargs -0 -I {} echo {}

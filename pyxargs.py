@@ -56,7 +56,7 @@ def safe_print(string: str) -> None:
 
 def build_commands(args: argparse.Namespace, stdin: str) -> list:
     command_dicts = []
-    append_input = not (args.pyex or args.pyev or args.resub) and args.replace_str is None and all("{}" not in arg for arg in args.command)
+    append_input = not (args.pyex or args.pyev or args.resub or args.format_str) and args.replace_str is None and all("{}" not in arg for arg in args.command)
     args.replace_str = "{}" if args.replace_str is None else args.replace_str
     # build commands using standard input mode or by walking the directory tree
     if args.input_mode == "stdin":
@@ -145,29 +145,31 @@ def build_command(args: argparse.Namespace, dir_path: str, basename: str, arg_in
         relpath = os.path.relpath(relpath, args.base_dir)
         if (re.search(args.regex, relpath) is not None) == args.regex_omit:
             return []
-    # copy command
-    command = [cmd for cmd in args.command]
+    # copy command first since some options mutate it
+    command = args.command.copy()
     # re.sub input into command
     if args.resub is not None:
-        for i in range(len(command)):
-            command[i] = command[i].replace(args.resub[2], re.sub(args.resub[0], args.resub[1], arg_input))
-    # sub input into command or append
-    if append_input:
+        command = [cmd.replace(args.resub[2], re.sub(args.resub[0], args.resub[1], arg_input)) for cmd in command]
+    # build command with input via format, append, or replace-str
+    if args.format_str:
+        arg_input_list = [arg_input]
+        if args.re_split is not None:
+            arg_input_list = re.split(args.re_split, arg_input)
+        command = [cmd.format(*arg_input_list) for cmd in command]
+    elif append_input:
         command.append(arg_input)
     else:
-        for i in range(len(command)):
-            command[i] = command[i].replace(args.replace_str, arg_input)
+        command = [cmd.replace(args.replace_str, arg_input) for cmd in command]
     # check length of command
     if args.max_chars is not None:
         if len(shlex.join(command)) > args.max_chars:
             if args.verbose:
                 colour_print(f"Command too long for: {arg_input}", "Y")
             return []
-    # join command
+    # join command if required
     if args.pyex or args.pyev or args.subprocess_shell:
         if len(command) > 1:
             command = [shlex.join(command)]
-    # and finally
     return command
 
 
@@ -230,16 +232,27 @@ def main() -> int:
       > echo bacon eggs | pyxargs echo spam
 
     # python code can be used in place of a command
-      > pyxargs --py "print(f'input file: {{}} executed in: {os.getcwd()}')"
+      > pyxargs --py "print(f'input file: {} executed in: {os.getcwd()}')"
 
     # python code can also run before or after all the commands
       > pyxargs --pre "n=0" --post "print(n,'files')" --py "n+=1"
 
     # regular expressions can be used to filter and modify inputs
-      > pyxargs -r \.py --resub \.py .txt {} echo {}
+      > pyxargs -r \.py --resub \.py .txt {new} echo {} -\> {new}
 
-    # the original inputs can easily be used with the substituted versions
-      > pyxargs -r \.py --resub \.py .txt new echo {} new
+    # you can test your command first with --dry-run (-n) or --interactive (-i)
+      > pyxargs -i echo filename: {}
+
+    # pyxargs can also run interactively in parallel by using byobu or tmux
+      > pyxargs -P 4 -i echo filename: {}
+
+    # you can use pyxargs to create a JSON mapping of /etc/hosts
+      > cat /etc/hosts | pyxargs -d \n --im json --pre "d={}" \
+        --post "print(dumps(d))" --py "d['{}'.split()[0]] = '{}'.split()[1]"
+
+    # you can also do this with format strings and --split (-s) (uses regex)
+      > cat /etc/hosts | pyxargs -d \n -s "\s+" --im json --pre "d={}" \
+        --post "print(dumps(d))" --py "d['{0}'] = '{1}'"
 
     # this and the following examples will compare usage with find & xargs
       > find ./ -name "*" -type f -print0 | xargs -0 -I {} echo {}
@@ -291,14 +304,16 @@ def main() -> int:
                         help="do not recurse into subdirectories (for input modes: file, path, abspath)")
     parser.add_argument("--sym", "--symlinks", action="store_true", dest="symlinks",
                         help="follow symlinks when scanning directories (for input modes: file, path, abspath)")
-    parser.add_argument("-a", "--arg-file", type=str, default=None, metavar="f", dest="arg_file",
+    parser.add_argument("-a", "--arg-file", type=str, default=None, metavar="file", dest="arg_file",
                         help="read input items from file instead of standard input (for input mode: stdin)")
     group0.add_argument("-0", "--null", action="store_true", dest="null",
                         help="input items are separated by a null character instead of whitespace (for input mode: stdin)")
-    group0.add_argument("-d", "--delimiter", type=str, default=None, metavar="d", dest="delim",
+    group0.add_argument("-d", "--delimiter", type=str, default=None, metavar="delim", dest="delim",
                         help="input items are separated by the specified delimiter instead of whitespace (for input mode: stdin)")
-    parser.add_argument("--max-chars", type=int, metavar="n", dest="max_chars",
-                        help="omits any command line exceeding n characters, no limit by default")
+    parser.add_argument("-s", "--split", type=str, default=None, metavar="regex", dest="re_split",
+                        help="split each input item with re.split(regex, input) before building command (after separating by delimiter), use {0}, {1}, ... to specify placement (implies --format)")
+    parser.add_argument("-f", "--format", action="store_true", dest="format_str",
+                        help="format command with input using str.format() instead of appending or replacing via -I replace-str")
     parser.add_argument("-I", action="store", type=str, default=None, metavar="replace-str", dest="replace_str",
                         help="replace occurrences of replace-str in command with input, default: {}")
     parser.add_argument("--resub", nargs=3, type=str, metavar=("pattern", "substitution", "replace-str"), dest="resub",
@@ -309,7 +324,9 @@ def main() -> int:
                         help="omit inputs matching regex instead")
     parser.add_argument("-b", action="store_true", dest="regex_basename",
                         help="only match regex against basename of input (for input modes: file, path, abspath)")
-    group1.add_argument("-s", "--shell", action="store_true", dest="subprocess_shell",
+    parser.add_argument("--max-chars", type=int, metavar="n", dest="max_chars",
+                        help="omits any command line exceeding n characters, no limit by default")
+    group1.add_argument("--sh", "--shell", action="store_true", dest="subprocess_shell",
                         help="executes commands through the shell (subprocess shell=True) (no effect on Windows)")
     group1.add_argument("--py", "--pyex", action="store_true", dest="pyex",
                         help="executes commands as python code using exec()")
@@ -366,6 +383,9 @@ def main() -> int:
     # set delimiter
     if args.null:
         args.delim = "\0"
+    # enable format string mode
+    if args.re_split is not None:
+        args.format_str = True
     # enable shell on windows
     if sys.platform.startswith("win32"):
         args.subprocess_shell = True
@@ -380,6 +400,7 @@ def main() -> int:
         assert not args.null, f"invalid option --null for input mode: {args.input_mode}"
         assert args.delim is None, f"invalid option --delimiter for input mode: {args.input_mode}"
         assert args.arg_file is None, f"invalid option --arg-file for input mode: {args.input_mode}"
+    assert not args.format_str or args.replace_str is None, "invalid option --format-str: cannot specify -I replace-str"
     assert args.procs is None or args.procs > 0, "invalid option --procs: requires P > 0"
     assert args.chunk is None or args.procs is not None, "invalid option --chunk: --procs must be specified"
     assert args.chunk is None or 0 <= args.chunk < args.procs, "invalid option --chunk: requires 0 <= c < P"
