@@ -32,7 +32,7 @@ import time
 import typing
 
 
-__version__: typing.Final[str] = "2.4.0"
+__version__: typing.Final[str] = "2.4.1"
 
 
 def replace_surrogates(string: str) -> str:
@@ -377,8 +377,8 @@ def main() -> int:
             args.input_mode = "file"
     elif args.input_mode == "stdin":
         stdin = sys.stdin.read()
-    # need to open new tty for interactive mode if input was read from stdin
-    if args.interactive and stdin and args.arg_file is None:
+    # need to open new tty for interactive mode if input was piped to stdin (handled later if using mux)
+    if args.interactive and not sys.stdin.isatty() and args.procs is None:
         sys.stdin = open("/dev/tty")
     # set delimiter
     if args.null:
@@ -429,7 +429,7 @@ def main() -> int:
             for i in range(1, args.procs):
                 pyxargs_command[3] = str(i)
                 subprocess.run([multiplexer, "new-window", "-t", f"{session}:{i}", shlex.join(pyxargs_command)])
-            if stdin:
+            if not sys.stdin.isatty():
                 sys.stdin = sys.__stdin__ = open("/dev/tty")
                 os.dup2(sys.stdin.fileno(), 0)
                 pty.spawn([multiplexer, "attach-session", "-t", session])
