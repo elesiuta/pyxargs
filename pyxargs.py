@@ -377,8 +377,8 @@ def main() -> int:
             args.input_mode = "file"
     elif args.input_mode == "stdin":
         stdin = sys.stdin.read()
-    # need to open new tty for interactive mode if input was piped to stdin (handled later if using mux)
-    if args.interactive and not sys.stdin.isatty() and args.procs is None:
+    # need to open new tty for interactive mode if input was piped to stdin (unless handled later if run subprocesses with multiplexer is requested)
+    if args.interactive and not sys.stdin.isatty() and not (args.procs is not None and args.chunk is None and not args.no_mux):
         sys.stdin = open("/dev/tty")
     # set delimiter
     if args.null:
