@@ -187,7 +187,11 @@ def execute_command(args: argparse.Namespace, command_dict: dict, user_namespace
             safe_print(shlex.join(cmd))
     else:
         if args.verbose:
-            colour_print(shlex.join(cmd), "B")
+            if len(cmd) == 1:
+                joined_cmd = cmd[0]
+            else:
+                joined_cmd = shlex.join(cmd)
+            colour_print(joined_cmd, "B")
         if args.pyex or args.pyev or args.format_str:
             try:
                 cmd = [eval(f"f\"{c}\"", globals(), user_namespace) for c in cmd]
@@ -195,7 +199,12 @@ def execute_command(args: argparse.Namespace, command_dict: dict, user_namespace
                 print(str(e), file=sys.stderr)
                 return
             if args.verbose:
-                colour_print(shlex.join(cmd), "Y")
+                if len(cmd) == 1:
+                    new_joined_cmd = cmd[0]
+                else:
+                    new_joined_cmd = shlex.join(cmd)
+                if new_joined_cmd != joined_cmd:
+                    colour_print(new_joined_cmd, "Y")
         if args.pyex:
             try:
                 exec(cmd[0], globals(), user_namespace)
