@@ -51,8 +51,16 @@ options:
                         before building command (after separating by
                         delimiter), use {0}, {1}, ... to specify placement
                         (implies --format)
+  -g regex, --groups regex
+                        use regex capturing groups on each input item with
+                        re.search(regex, input).groups() before building
+                        command (after separating by delimiter), use {0}, {1},
+                        ... to specify placement (implies --format)
   -f, --format          format command with input using str.format() instead
-                        of appending or replacing via -I replace-str
+                        of appending or replacing via -I replace-str, the
+                        command is then evaluated as an f-string, use {0},
+                        {1}, ... to specify placement and {{expr}} to evaluate
+                        expressions
   -I replace-str        replace occurrences of replace-str in command with
                         input, default: {}
   --resub pattern substitution replace-str
@@ -68,8 +76,10 @@ options:
                         limit by default
   --sh, --shell         executes commands through the shell (subprocess
                         shell=True) (no effect on Windows)
-  --py, --pyex          executes commands as python code using exec()
-  --pyev                evaluates commands as python expressions using eval()
+  --py, --pyex          executes commands as python code using exec(),
+                        commands are treated as f-strings
+  --pyev                evaluates commands as python expressions using eval(),
+                        commands are treated as f-strings
   --import library      executes 'import <library>' for each library
   --im library, --importstar library
                         executes 'from <library> import *' for each library
