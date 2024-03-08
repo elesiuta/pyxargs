@@ -186,6 +186,14 @@ def execute_command(args: argparse.Namespace, command_dict: dict, user_namespace
     else:
         if args.verbose:
             colour_print(shlex.join(cmd), "B")
+        if args.pyex or args.pyev or args.format_str:
+            try:
+                cmd = [eval(f"f\"{c}\"", globals(), user_namespace) for c in cmd]
+            except Exception as e:
+                print(str(e), file=sys.stderr)
+                return
+            if args.verbose:
+                colour_print(shlex.join(cmd), "B")
         if args.pyex:
             try:
                 exec(cmd[0], globals(), user_namespace)
@@ -310,7 +318,7 @@ def main() -> int:
     parser.add_argument("-s", "--split", type=str, default=None, metavar="regex", dest="re_split",
                         help="split each input item with re.split(regex, input) before building command (after separating by delimiter), use {0}, {1}, ... to specify placement (implies --format)")
     parser.add_argument("-f", "--format", action="store_true", dest="format_str",
-                        help="format command with input using str.format() instead of appending or replacing via -I replace-str")
+                        help="format command with input using str.format() instead of appending or replacing via -I replace-str, the command is then evaluated as an f-string, use {0}, {1}, ... to specify placement and {{expr}} to evaluate expressions")
     parser.add_argument("-I", action="store", type=str, default=None, metavar="replace-str", dest="replace_str",
                         help="replace occurrences of replace-str in command with input, default: {}")
     parser.add_argument("--resub", nargs=3, type=str, metavar=("pattern", "substitution", "replace-str"), dest="resub",
@@ -326,9 +334,9 @@ def main() -> int:
     group1.add_argument("--sh", "--shell", action="store_true", dest="subprocess_shell",
                         help="executes commands through the shell (subprocess shell=True) (no effect on Windows)")
     group1.add_argument("--py", "--pyex", action="store_true", dest="pyex",
-                        help="executes commands as python code using exec()")
+                        help="executes commands as python code using exec(), commands are treated as f-strings")
     group1.add_argument("--pyev", action="store_true", dest="pyev",
-                        help="evaluates commands as python expressions using eval()")
+                        help="evaluates commands as python expressions using eval(), commands are treated as f-strings")
     parser.add_argument("--import", action="append", type=str, default=[], metavar=("library"), dest="imprt",
                         help="executes 'import <library>' for each library")
     parser.add_argument("--im", "--importstar", action="append", type=str, default=[], metavar=("library"), dest="imprtstar",
