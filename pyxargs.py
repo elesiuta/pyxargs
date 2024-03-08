@@ -164,7 +164,7 @@ def build_command(args: argparse.Namespace, dir_path: str, basename: str, arg_in
     if args.max_chars is not None:
         if len(shlex.join(command)) > args.max_chars:
             if args.verbose:
-                colour_print(f"Command too long for: {arg_input}", "Y")
+                colour_print(f"Command too long for: {arg_input}", "R")
             return []
     # join command if required
     if args.pyex or args.pyev or args.subprocess_shell:
@@ -193,7 +193,7 @@ def execute_command(args: argparse.Namespace, command_dict: dict, user_namespace
                 print(str(e), file=sys.stderr)
                 return
             if args.verbose:
-                colour_print(shlex.join(cmd), "B")
+                colour_print(shlex.join(cmd), "Y")
         if args.pyex:
             try:
                 exec(cmd[0], globals(), user_namespace)
