@@ -56,7 +56,7 @@ def safe_print(string: str) -> None:
 
 def build_commands(args: argparse.Namespace, stdin: str) -> list:
     command_dicts = []
-    append_input = not (args.pyex or args.pyev or args.resub or args.format_str) and args.replace_str is None and all("{}" not in arg for arg in args.command)
+    append_input = not (args.pyex or args.pyev or args.pyprt or args.resub or args.format_str) and args.replace_str is None and all("{}" not in arg for arg in args.command)
     args.replace_str = "{}" if args.replace_str is None else args.replace_str
     # build commands using standard input mode or by walking the directory tree
     if args.input_mode == "stdin":
@@ -169,7 +169,7 @@ def build_command(args: argparse.Namespace, dir_path: str, basename: str, arg_in
                 colour_print(f"Command too long for: {arg_input}", "R")
             return []
     # join command if required
-    if args.pyex or args.pyev or args.subprocess_shell:
+    if args.pyex or args.pyev or args.pyprt or args.subprocess_shell:
         if len(command) > 1:
             command = [shlex.join(command)]
     return command
@@ -187,18 +187,21 @@ def execute_command(args: argparse.Namespace, command_dict: dict, user_namespace
             safe_print(shlex.join(cmd))
     else:
         if args.verbose:
+            # special case for len 1 (short or already joined) to avoid extra shell escaped quotes
             if len(cmd) == 1:
                 joined_cmd = cmd[0]
             else:
                 joined_cmd = shlex.join(cmd)
             colour_print(joined_cmd, "B")
-        if args.pyex or args.pyev or args.format_str:
+        if args.pyex or args.pyev or args.pyprt or args.format_str:
+            # evaluate f-strings
             try:
                 cmd = [eval(f"f\"{c}\"", globals(), user_namespace) for c in cmd]
             except Exception as e:
                 print(str(e), file=sys.stderr)
                 return
-            if args.verbose:
+            # print verbose again after evaluation, pyprt already prints at this stage
+            if args.verbose and not args.pyprt:
                 if len(cmd) == 1:
                     new_joined_cmd = cmd[0]
                 else:
@@ -216,6 +219,8 @@ def execute_command(args: argparse.Namespace, command_dict: dict, user_namespace
                 print(result)
             except Exception as e:
                 print(str(e), file=sys.stderr)
+        elif args.pyprt:
+            print(cmd[0])
         elif args.subprocess_shell:
             subprocess.run(cmd[0], shell=True)
         else:
@@ -350,6 +355,8 @@ def main() -> int:
                         help="executes commands as python code using exec(), commands are treated as f-strings")
     group1.add_argument("--pyev", action="store_true", dest="pyev",
                         help="evaluates commands as python expressions using eval(), commands are treated as f-strings")
+    group1.add_argument("--pyp", action="store_true", dest="pyprt",
+                        help="evaluates commands as python f-strings then prints them")
     parser.add_argument("--import", action="append", type=str, default=[], metavar=("library"), dest="imprt",
                         help="executes 'import <library>' for each library")
     parser.add_argument("--im", "--importstar", action="append", type=str, default=[], metavar=("library"), dest="imprtstar",
