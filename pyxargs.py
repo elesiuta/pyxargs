@@ -155,6 +155,8 @@ def build_command(args: argparse.Namespace, dir_path: str, basename: str, arg_in
         arg_input_list = [arg_input]
         if args.re_split is not None:
             arg_input_list = re.split(args.re_split, arg_input)
+        elif args.re_groups is not None:
+            arg_input_list = re.search(args.re_groups, arg_input).groups()
         command = [cmd.format(*arg_input_list) for cmd in command]
     elif append_input:
         command.append(arg_input)
@@ -317,6 +319,8 @@ def main() -> int:
                         help="input items are separated by the specified delimiter instead of whitespace (for input mode: stdin)")
     parser.add_argument("-s", "--split", type=str, default=None, metavar="regex", dest="re_split",
                         help="split each input item with re.split(regex, input) before building command (after separating by delimiter), use {0}, {1}, ... to specify placement (implies --format)")
+    parser.add_argument("-g", "--groups", type=str, default=None, metavar="regex", dest="re_groups",
+                        help="use regex capturing groups on each input item with re.search(regex, input).groups() before building command (after separating by delimiter), use {0}, {1}, ... to specify placement (implies --format)")
     parser.add_argument("-f", "--format", action="store_true", dest="format_str",
                         help="format command with input using str.format() instead of appending or replacing via -I replace-str, the command is then evaluated as an f-string, use {0}, {1}, ... to specify placement and {{expr}} to evaluate expressions")
     parser.add_argument("-I", action="store", type=str, default=None, metavar="replace-str", dest="replace_str",
@@ -389,7 +393,7 @@ def main() -> int:
     if args.null:
         args.delim = "\0"
     # enable format string mode
-    if args.re_split is not None:
+    if args.re_split is not None or args.re_groups is not None:
         args.format_str = True
     # enable shell on windows
     if sys.platform.startswith("win32"):
@@ -406,6 +410,7 @@ def main() -> int:
         assert args.delim is None, f"invalid option --delimiter for input mode: {args.input_mode}"
         assert args.arg_file is None, f"invalid option --arg-file for input mode: {args.input_mode}"
     assert not args.format_str or args.replace_str is None, "invalid option --format-str: cannot specify -I replace-str"
+    assert not (args.re_split and args.re_groups), "invalid option: cannot specify both --split and --groups"
     assert args.procs is None or args.procs > 0, "invalid option --procs: requires P > 0"
     assert args.chunk is None or args.procs is not None, "invalid option --chunk: --procs must be specified"
     assert args.chunk is None or 0 <= args.chunk < args.procs, "invalid option --chunk: requires 0 <= c < P"
