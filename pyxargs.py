@@ -185,10 +185,7 @@ def execute_command(args: argparse.Namespace, command_dict: dict, user_namespace
             safe_print(shlex.join(cmd))
     else:
         if args.verbose:
-            if len(cmd) == 1:
-                colour_print(cmd[0], "B")
-            else:
-                colour_print(shlex.join(cmd), "B")
+            colour_print(shlex.join(cmd), "B")
         if args.pyex:
             try:
                 exec(cmd[0], globals(), user_namespace)
