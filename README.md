@@ -80,6 +80,7 @@ options:
                         commands are treated as f-strings
   --pyev                evaluates commands as python expressions using eval(),
                         commands are treated as f-strings
+  --pyp                 evaluates commands as python f-strings then prints them
   --import library      executes 'import <library>' for each library
   --im library, --importstar library
                         executes 'from <library> import *' for each library
