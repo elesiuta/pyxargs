@@ -65,30 +65,30 @@ def build_commands(args: argparse.Namespace, stdin: str) -> list:
         arg_input_list = stdin.split(args.delim)
         # build commands from stdin
         for arg_input in arg_input_list:
-            command = build_command(args, "", "", arg_input, append_input)
+            command, arg_input, arg_input_split = build_command(args, "", "", arg_input, append_input)
             if command:
-                command_dicts.append({"dir": args.base_dir, "cmd": command})
+                command_dicts.append({"dir": args.base_dir, "cmd": command, "input": arg_input, "input_split": arg_input_split})
     elif args.input_mode in ['file', 'path', 'abspath']:
         for dir_path, folder_list, file_list in os.walk(args.base_dir, topdown=True, followlinks=args.symlinks):
             folder_list.sort()
             if args.folders:
                 # build commands from directory names
                 for folder_name in sorted(folder_list):
-                    command = build_command(args, dir_path, folder_name, "", append_input)
+                    command, arg_input, arg_input_split = build_command(args, dir_path, folder_name, "", append_input)
                     if command:
-                        command_dicts.append({"dir": dir_path, "cmd": command})
+                        command_dicts.append({"dir": dir_path, "cmd": command, "input": arg_input, "input_split": arg_input_split})
             else:
                 # build commands from filenames or file paths
                 for file_name in sorted(file_list):
-                    command = build_command(args, dir_path, file_name, "", append_input)
+                    command, arg_input, arg_input_split = build_command(args, dir_path, file_name, "", append_input)
                     if command:
-                        command_dicts.append({"dir": dir_path, "cmd": command})
+                        command_dicts.append({"dir": dir_path, "cmd": command, "input": arg_input, "input_split": arg_input_split})
             if args.top_level:
                 break
     return command_dicts
 
 
-def build_command(args: argparse.Namespace, dir_path: str, basename: str, arg_input: str, append_input: bool) -> list:
+def build_command(args: argparse.Namespace, dir_path: str, basename: str, arg_input: str, append_input: bool) -> typing.Tuple[list, str, typing.Union[list, tuple]]:
     # mode
     if args.input_mode == "file":
         arg_input = basename
@@ -100,28 +100,28 @@ def build_command(args: argparse.Namespace, dir_path: str, basename: str, arg_in
     # check re match
     if args.input_mode == "stdin":
         if (re.search(args.regex, arg_input) is not None) == args.regex_omit:
-            return []
+            return [], "", []
     elif args.regex_basename:
         if (re.search(args.regex, basename) is not None) == args.regex_omit:
-            return []
+            return [], "", []
     else:
         relpath = os.path.join(dir_path, basename)
         relpath = os.path.relpath(relpath, args.base_dir)
         if (re.search(args.regex, relpath) is not None) == args.regex_omit:
-            return []
+            return [], "", []
     # copy command first since some options mutate it
     command = args.command.copy()
     # re.sub input into command
     if args.resub is not None:
         command = [cmd.replace(args.resub[2], re.sub(args.resub[0], args.resub[1], arg_input)) for cmd in command]
     # build command with input via format, append, or replace-str
+    arg_input_split = [arg_input]
     if args.format_str:
-        arg_input_list = [arg_input]
         if args.re_split is not None:
-            arg_input_list = re.split(args.re_split, arg_input)
+            arg_input_split = re.split(args.re_split, arg_input)
         elif args.re_groups is not None:
-            arg_input_list = re.search(args.re_groups, arg_input).groups()
-        command = [cmd.format(*arg_input_list) for cmd in command]
+            arg_input_split = re.search(args.re_groups, arg_input).groups()
+        command = [cmd.format(*arg_input_split) for cmd in command]
     elif append_input:
         command.append(arg_input)
     else:
@@ -136,14 +136,16 @@ def build_command(args: argparse.Namespace, dir_path: str, basename: str, arg_in
     if args.pyex or args.pyev or args.pyprt or args.subprocess_shell:
         if len(command) > 1:
             command = [shlex.join(command)]
-    return command
+    return command, arg_input, arg_input_split
 
 
 def execute_commands(args: argparse.Namespace, command_dicts: list) -> int:
     user_namespace = {}
     # loop variables available to the user
-    global i
-    i = 0
+    global i, j, n
+    i = -1
+    n = len(command_dicts)
+    j = n
     # pre execution tasks
     for lib in args.imprt:
         exec(f"import {lib}", globals(), user_namespace)
@@ -180,8 +182,11 @@ def execute_commands(args: argparse.Namespace, command_dicts: list) -> int:
 
 def execute_command(args: argparse.Namespace, command_dict: dict, user_namespace: dict) -> None:
     # update variables available to the user
-    global i
+    global i, j, n, x, l
     i += 1
+    j = n - i
+    x = command_dict["input"]
+    l = command_dict["input_split"]
     # prepare to execute command or return if dry run
     dir_path = command_dict["dir"]
     cmd = command_dict["cmd"]
@@ -469,9 +474,9 @@ def main() -> int:
             command_pickle.file.flush()
             pyxargs_command = [sys.executable, os.path.abspath(__file__), "--chunk", "0", "--_command_pickle", args.input_mode, command_pickle.name] + sys.argv[1:]
             subprocess.run([multiplexer, "new-session", "-d", "-s", session, shlex.join(pyxargs_command)])
-            for i in range(1, args.procs):
+            for proc_i in range(1, args.procs):
                 pyxargs_command[3] = str(i)
-                subprocess.run([multiplexer, "new-window", "-t", f"{session}:{i}", shlex.join(pyxargs_command)])
+                subprocess.run([multiplexer, "new-window", "-t", f"{session}:{proc_i}", shlex.join(pyxargs_command)])
             if not sys.stdin.isatty():
                 sys.stdin = sys.__stdin__ = open("/dev/tty")
                 os.dup2(sys.stdin.fileno(), 0)
