@@ -114,6 +114,9 @@ options:
 # python code can also run before or after all the commands
   > pyxargs --pre "n=0" --post "print(n,'files')" --py "n+=1"
 
+# you can also evaluate and print python f-strings, the index i is provided
+  > pyxargs --pyp "number: {i}\tname: {}"
+
 # regular expressions can be used to filter and modify inputs
   > pyxargs -r \.py --resub \.py .txt {new} echo {} -\> {new}
 
@@ -130,6 +133,9 @@ options:
 # you can also do this with format strings and --split (-s) (uses regex)
   > cat /etc/hosts | pyxargs -d \n -s "\s+" --im json --pre "d={}" \
     --post "print(dumps(d))" --py "d['{0}'] = '{1}'"
+
+# use double curly braces to escape for f-strings since str.format() is first
+  > cat /etc/hosts | pyxargs -d \n -s "\s+" --pyp "{{i}}:{{'{1}'.upper()}}"
 
 # this and the following examples will compare usage with find & xargs
   > find ./ -name "*" -type f -print0 | xargs -0 -I {} echo {}
