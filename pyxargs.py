@@ -90,11 +90,14 @@ def build_commands(args: argparse.Namespace, stdin: str) -> list:
 
 def execute_commands(args: argparse.Namespace, command_dicts: list) -> int:
     user_namespace = {}
+    # loop variables available to the user
+    global i
+    i = 0
     # pre execution tasks
-    for i in args.imprt:
-        exec(f"import {i}", globals(), user_namespace)
-    for i in args.imprtstar:
-        exec(f"from {i} import *", globals(), user_namespace)
+    for lib in args.imprt:
+        exec(f"import {lib}", globals(), user_namespace)
+    for lib in args.imprtstar:
+        exec(f"from {lib} import *", globals(), user_namespace)
     if args.pre:
         exec(args.pre, globals(), user_namespace)
     # execute commands
@@ -176,6 +179,10 @@ def build_command(args: argparse.Namespace, dir_path: str, basename: str, arg_in
 
 
 def execute_command(args: argparse.Namespace, command_dict: dict, user_namespace: dict) -> None:
+    # update variables available to the user
+    global i
+    i += 1
+    # prepare to execute command
     dir_path = command_dict["dir"]
     cmd = command_dict["cmd"]
     if args.input_mode == "file":
