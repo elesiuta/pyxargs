@@ -182,7 +182,7 @@ def execute_command(args: argparse.Namespace, command_dict: dict, user_namespace
     # update variables available to the user
     global i
     i += 1
-    # prepare to execute command
+    # prepare to execute command or return if dry run
     dir_path = command_dict["dir"]
     cmd = command_dict["cmd"]
     if args.input_mode == "file":
@@ -192,46 +192,47 @@ def execute_command(args: argparse.Namespace, command_dict: dict, user_namespace
             safe_print(cmd[0])
         else:
             safe_print(shlex.join(cmd))
-    else:
-        if args.verbose:
-            # special case for len 1 (short or already joined) to avoid extra shell escaped quotes
-            if len(cmd) == 1:
-                joined_cmd = cmd[0]
-            else:
-                joined_cmd = shlex.join(cmd)
-            colour_print(joined_cmd, "B")
-        if args.pyex or args.pyev or args.pyprt or args.format_str:
-            # evaluate f-strings
-            try:
-                cmd = [eval(f"f\"{c}\"", globals(), user_namespace) for c in cmd]
-            except Exception as e:
-                print(str(e), file=sys.stderr)
-                return
-            # print verbose again after evaluation, pyprt already prints at this stage
-            if args.verbose and not args.pyprt:
-                if len(cmd) == 1:
-                    new_joined_cmd = cmd[0]
-                else:
-                    new_joined_cmd = shlex.join(cmd)
-                if new_joined_cmd != joined_cmd:
-                    colour_print(new_joined_cmd, "Y")
-        if args.pyex:
-            try:
-                exec(cmd[0], globals(), user_namespace)
-            except Exception as e:
-                print(str(e), file=sys.stderr)
-        elif args.pyev:
-            try:
-                result = eval(cmd[0], globals(), user_namespace)
-                print(result)
-            except Exception as e:
-                print(str(e), file=sys.stderr)
-        elif args.pyprt:
-            print(cmd[0])
-        elif args.subprocess_shell:
-            subprocess.run(cmd[0], shell=True)
+        return
+    # optionally print, then execute command
+    if args.verbose:
+        # special case for len 1 (short or already joined) to avoid extra shell escaped quotes
+        if len(cmd) == 1:
+            joined_cmd = cmd[0]
         else:
-            subprocess.run(cmd, shell=False)
+            joined_cmd = shlex.join(cmd)
+        colour_print(joined_cmd, "B")
+    if args.pyex or args.pyev or args.pyprt or args.format_str:
+        # evaluate f-strings
+        try:
+            cmd = [eval(f"f\"{c}\"", globals(), user_namespace) for c in cmd]
+        except Exception as e:
+            print(str(e), file=sys.stderr)
+            return
+        # print verbose again after evaluation, pyprt already prints at this stage
+        if args.verbose and not args.pyprt:
+            if len(cmd) == 1:
+                new_joined_cmd = cmd[0]
+            else:
+                new_joined_cmd = shlex.join(cmd)
+            if new_joined_cmd != joined_cmd:
+                colour_print(new_joined_cmd, "Y")
+    if args.pyex:
+        try:
+            exec(cmd[0], globals(), user_namespace)
+        except Exception as e:
+            print(str(e), file=sys.stderr)
+    elif args.pyev:
+        try:
+            result = eval(cmd[0], globals(), user_namespace)
+            print(result)
+        except Exception as e:
+            print(str(e), file=sys.stderr)
+    elif args.pyprt:
+        print(cmd[0])
+    elif args.subprocess_shell:
+        subprocess.run(cmd[0], shell=True)
+    else:
+        subprocess.run(cmd, shell=False)
 
 
 def main() -> int:
