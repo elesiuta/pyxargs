@@ -274,6 +274,12 @@ def main() -> int:
     # you can also evaluate and print python f-strings, the index i is provided
       > pyxargs --pyp "number: {i}\tname: {}"
 
+    # other variables: j=remaining, n=total, x=input, l=[x] (split x if -s or -g)
+      > pyxargs --pyp "i={i}\tj={j}\tn={n}\tx={x}\tl={l}"
+
+    # these variables are only in the global scope, so they won't overwrite locals
+      > pyxargs --pre "i=1;j=2;n=5;x=3;l=3;" --pyp "i={i} j={j} n={n} x={x} l={l}"
+
     # regular expressions can be used to filter and modify inputs
       > pyxargs -r \.py --resub \.py .txt {new} echo {} -\> {new}
 
