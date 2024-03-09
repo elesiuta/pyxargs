@@ -88,45 +88,6 @@ def build_commands(args: argparse.Namespace, stdin: str) -> list:
     return command_dicts
 
 
-def execute_commands(args: argparse.Namespace, command_dicts: list) -> int:
-    user_namespace = {}
-    # loop variables available to the user
-    global i
-    i = 0
-    # pre execution tasks
-    for lib in args.imprt:
-        exec(f"import {lib}", globals(), user_namespace)
-    for lib in args.imprtstar:
-        exec(f"from {lib} import *", globals(), user_namespace)
-    if args.pre:
-        exec(args.pre, globals(), user_namespace)
-    # execute commands
-    if args.interactive:
-        for command_dict in command_dicts:
-            if len(command_dict["cmd"]) == 1:
-                colour_print(command_dict["cmd"][0], "G")
-            else:
-                colour_print(shlex.join(command_dict["cmd"]), "G")
-            print("Run command (Yes/No/QUIT)?")
-            run = input("> ")
-            if run.lower().startswith("y"):
-                execute_command(args, command_dict, user_namespace)
-            elif run.lower().startswith("n"):
-                pass
-            else:
-                return 4
-    elif args.no_mux:
-        with multiprocessing.Pool(args.procs) as pool:
-            pool.starmap(execute_command, [(args, command_dict, user_namespace) for command_dict in command_dicts])
-    else:
-        for command_dict in command_dicts:
-            execute_command(args, command_dict, user_namespace)
-    # post execution tasks
-    if args.post:
-        exec(args.post, globals(), user_namespace)
-    return 0
-
-
 def build_command(args: argparse.Namespace, dir_path: str, basename: str, arg_input: str, append_input: bool) -> list:
     # mode
     if args.input_mode == "file":
@@ -176,6 +137,45 @@ def build_command(args: argparse.Namespace, dir_path: str, basename: str, arg_in
         if len(command) > 1:
             command = [shlex.join(command)]
     return command
+
+
+def execute_commands(args: argparse.Namespace, command_dicts: list) -> int:
+    user_namespace = {}
+    # loop variables available to the user
+    global i
+    i = 0
+    # pre execution tasks
+    for lib in args.imprt:
+        exec(f"import {lib}", globals(), user_namespace)
+    for lib in args.imprtstar:
+        exec(f"from {lib} import *", globals(), user_namespace)
+    if args.pre:
+        exec(args.pre, globals(), user_namespace)
+    # execute commands
+    if args.interactive:
+        for command_dict in command_dicts:
+            if len(command_dict["cmd"]) == 1:
+                colour_print(command_dict["cmd"][0], "G")
+            else:
+                colour_print(shlex.join(command_dict["cmd"]), "G")
+            print("Run command (Yes/No/QUIT)?")
+            run = input("> ")
+            if run.lower().startswith("y"):
+                execute_command(args, command_dict, user_namespace)
+            elif run.lower().startswith("n"):
+                pass
+            else:
+                return 4
+    elif args.no_mux:
+        with multiprocessing.Pool(args.procs) as pool:
+            pool.starmap(execute_command, [(args, command_dict, user_namespace) for command_dict in command_dicts])
+    else:
+        for command_dict in command_dicts:
+            execute_command(args, command_dict, user_namespace)
+    # post execution tasks
+    if args.post:
+        exec(args.post, globals(), user_namespace)
+    return 0
 
 
 def execute_command(args: argparse.Namespace, command_dict: dict, user_namespace: dict) -> None:
