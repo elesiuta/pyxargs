@@ -55,7 +55,7 @@ def safe_print(string: str) -> None:
 
 
 def build_commands(args: argparse.Namespace, stdin: str) -> list:
-    command_dicts = []
+    command_dicts = [{"all_inputs": []}]
     append_input = not (args.pyex or args.pyev or args.pyprt or args.resub or args.format_str) and args.replace_str is None and all("{}" not in arg for arg in args.command)
     args.replace_str = "{}" if args.replace_str is None else args.replace_str
     # build commands using standard input mode or by walking the directory tree
@@ -68,6 +68,7 @@ def build_commands(args: argparse.Namespace, stdin: str) -> list:
             command, arg_input, arg_input_split = build_command(args, "", "", arg_input, append_input)
             if command:
                 command_dicts.append({"dir": args.base_dir, "cmd": command, "input": arg_input, "input_split": arg_input_split})
+                command_dicts[0]["all_inputs"].append(arg_input)
     elif args.input_mode in ['file', 'path', 'abspath']:
         for dir_path, folder_list, file_list in os.walk(args.base_dir, topdown=True, followlinks=args.symlinks):
             folder_list.sort()
@@ -77,12 +78,14 @@ def build_commands(args: argparse.Namespace, stdin: str) -> list:
                     command, arg_input, arg_input_split = build_command(args, dir_path, folder_name, "", append_input)
                     if command:
                         command_dicts.append({"dir": dir_path, "cmd": command, "input": arg_input, "input_split": arg_input_split})
+                        command_dicts[0]["all_inputs"].append(arg_input)
             else:
                 # build commands from filenames or file paths
                 for file_name in sorted(file_list):
                     command, arg_input, arg_input_split = build_command(args, dir_path, file_name, "", append_input)
                     if command:
                         command_dicts.append({"dir": dir_path, "cmd": command, "input": arg_input, "input_split": arg_input_split})
+                        command_dicts[0]["all_inputs"].append(arg_input)
             if args.top_level:
                 break
     return command_dicts
@@ -141,11 +144,17 @@ def build_command(args: argparse.Namespace, dir_path: str, basename: str, arg_in
 
 def execute_commands(args: argparse.Namespace, command_dicts: list) -> int:
     user_namespace = {}
+    # pop special first entry from command_dicts, not supported with multiple processes
+    if "all_inputs" in command_dicts[0]:
+        all_inputs = command_dicts.pop(0)["all_inputs"]
+    if args.procs is not None:
+        all_inputs = ["ERROR: var not available with --procs"] * len(command_dicts)
     # loop variables available to the user
-    global i, j, n
+    global i, j, n, a
     i = -1
     n = len(command_dicts)
     j = n
+    a = all_inputs
     # pre execution tasks
     for lib in args.imprt:
         exec(f"import {lib}", globals(), user_namespace)
@@ -160,14 +169,15 @@ def execute_commands(args: argparse.Namespace, command_dicts: list) -> int:
                 colour_print(command_dict["cmd"][0], "G")
             else:
                 colour_print(shlex.join(command_dict["cmd"]), "G")
-            print("Run command (Yes/No/QUIT)?")
+            print("Run command (Yes/NO/Quit)?")
             run = input("> ")
             if run.lower().startswith("y"):
                 execute_command(args, command_dict, user_namespace)
-            elif run.lower().startswith("n"):
-                pass
-            else:
+            elif run.lower().startswith("q"):
                 return 4
+            else:
+                # default to no, update loop variables since execute_command was skipped
+                i, j = i + 1, j - 1
     elif args.no_mux:
         with multiprocessing.Pool(args.procs) as pool:
             pool.starmap(execute_command, [(args, command_dict, user_namespace) for command_dict in command_dicts])
@@ -182,11 +192,12 @@ def execute_commands(args: argparse.Namespace, command_dicts: list) -> int:
 
 def execute_command(args: argparse.Namespace, command_dict: dict, user_namespace: dict) -> None:
     # update variables available to the user
-    global i, j, n, x, l
-    i += 1
-    j = n - i
+    global i, j, n, a, d, x, r, s
+    i, j = i + 1, j - 1
+    d = command_dict["dir"]
     x = command_dict["input"]
-    l = command_dict["input_split"]
+    r = command_dict["input_split"]
+    s = x.split()
     # prepare to execute command or return if dry run
     dir_path = command_dict["dir"]
     cmd = command_dict["cmd"]
@@ -206,7 +217,7 @@ def execute_command(args: argparse.Namespace, command_dict: dict, user_namespace
         else:
             joined_cmd = shlex.join(cmd)
         colour_print(joined_cmd, "B")
-    if args.pyex or args.pyev or args.pyprt or args.format_str:
+    if args.fstring:
         # evaluate f-strings
         try:
             cmd = [eval(f"f\"{c}\"", globals(), user_namespace) for c in cmd]
@@ -266,19 +277,22 @@ def main() -> int:
       > echo bacon eggs | pyxargs echo spam
 
     # python code can be used in place of a command
-      > pyxargs --py "print(f'input file: {} executed in: {os.getcwd()}')"
+      > pyxargs --pyex "print(f'input file: {} executed in: {os.getcwd()}')"
 
     # python code can also run before or after all the commands
-      > pyxargs --pre "n=0" --post "print(n,'files')" --py "n+=1"
+      > pyxargs --pre "n=0" --post "print(n,'files')" -x "n+=1"
 
     # you can also evaluate and print python f-strings, the index i is provided
-      > pyxargs --pyp "number: {i}\tname: {}"
+      > pyxargs --pypr "number: {i}\tname: {}"
 
-    # other variables: j=remaining, n=total, x=input, l=[x] (split x if -s or -g)
-      > pyxargs --pyp "i={i}\tj={j}\tn={n}\tx={x}\tl={l}"
+    # other variables: j=remaining, n=total, x=input, d=dir, a[i]=x
+      > pyxargs -p "i={i}\tj={j}\tn={n}\tx={x}\td={d}\ta[{i}]={a[i]}={a[-j]}"
 
-    # these variables are only in the global scope, so they won't overwrite locals
-      > pyxargs --pre "i=1;j=2;n=5;x=3;l=3;" --pyp "i={i} j={j} n={n} x={x} l={l}"
+    # split variables: s=x.split(), r is regex split via -s or -g, otherwise r=[x]
+      > pyxargs -m p -s "/" -p "s={s}\tr={r}"
+
+    # given variables are only in the global scope, so they won't overwrite locals
+      > pyxargs --pre "i=1;j=2;n=5;x=3;l=3;" --p "i={i} j={j} n={n} x={x} l={l}"
 
     # regular expressions can be used to filter and modify inputs
       > pyxargs -r \.py --resub \.py .txt {new} echo {} -\> {new}
@@ -298,7 +312,7 @@ def main() -> int:
         --post "print(dumps(d))" --py "d['{0}'] = '{1}'"
 
     # use double curly braces to escape for f-strings since str.format() is first
-      > cat /etc/hosts | pyxargs -d \n -s "\s+" --pyp "{{i}}:{{'{1}'.upper()}}"
+      > cat /etc/hosts | pyxargs -d \n -s "\s+" -p "{{i}}:{{'{1}'.upper()}}"
 
     # this and the following examples will compare usage with find & xargs
       > find ./ -name "*" -type f -print0 | xargs -0 -I {} echo {}
@@ -316,7 +330,7 @@ def main() -> int:
       > pyxargs -m path echo ./{}
 
     # and now for something completely different, python code for the command
-      > pyxargs -m path --py "print('./{}')"
+      > pyxargs -m path -x "print('./{}')"
     """)
     parser = argparse.ArgumentParser(description=readme,
                                      formatter_class=lambda prog: ArgparseCustomFormatter(prog, max_help_position=24),
@@ -354,14 +368,16 @@ def main() -> int:
                         help="read input items from file instead of standard input (for input mode: stdin)")
     group0.add_argument("-0", "--null", action="store_true", dest="null",
                         help="input items are separated by a null character instead of whitespace (for input mode: stdin)")
+    group0.add_argument("-l", "--lines", action="store_true", dest="lines",
+                        help="input items are separated by a newline character instead of whitespace (for input mode: stdin)")
     group0.add_argument("-d", "--delimiter", type=str, default=None, metavar="delim", dest="delim",
                         help="input items are separated by the specified delimiter instead of whitespace (for input mode: stdin)")
     parser.add_argument("-s", "--split", type=str, default=None, metavar="regex", dest="re_split",
                         help="split each input item with re.split(regex, input) before building command (after separating by delimiter), use {0}, {1}, ... to specify placement (implies --format)")
     parser.add_argument("-g", "--groups", type=str, default=None, metavar="regex", dest="re_groups",
                         help="use regex capturing groups on each input item with re.search(regex, input).groups() before building command (after separating by delimiter), use {0}, {1}, ... to specify placement (implies --format)")
-    parser.add_argument("-f", "--format", action="store_true", dest="format_str",
-                        help="format command with input using str.format() instead of appending or replacing via -I replace-str, the command is then evaluated as an f-string, use {0}, {1}, ... to specify placement and {{expr}} to evaluate expressions")
+    parser.add_argument("--format", action="store_true", dest="format_str",
+                        help="format command with input using str.format() instead of appending or replacing via -I replace-str, use {0}, {1}, ... to specify placement, if the command is then evaluated as an f-string (--fstring) escape using double curly braces as {{expr}} to evaluate expressions")
     parser.add_argument("-I", action="store", type=str, default=None, metavar="replace-str", dest="replace_str",
                         help="replace occurrences of replace-str in command with input, default: {}")
     parser.add_argument("--resub", nargs=3, type=str, metavar=("pattern", "substitution", "replace-str"), dest="resub",
@@ -372,16 +388,18 @@ def main() -> int:
                         help="omit inputs matching regex instead")
     parser.add_argument("-b", action="store_true", dest="regex_basename",
                         help="only match regex against basename of input (for input modes: file, path, abspath)")
+    parser.add_argument("-f", "--fstring", action="store_true", dest="fstring",
+                        help="evaluates commands as python f-strings before execution")
     parser.add_argument("--max-chars", type=int, metavar="n", dest="max_chars",
                         help="omits any command line exceeding n characters, no limit by default")
     group1.add_argument("--sh", "--shell", action="store_true", dest="subprocess_shell",
                         help="executes commands through the shell (subprocess shell=True) (no effect on Windows)")
-    group1.add_argument("--py", "--pyex", action="store_true", dest="pyex",
-                        help="executes commands as python code using exec(), commands are treated as f-strings")
-    group1.add_argument("--pyev", action="store_true", dest="pyev",
-                        help="evaluates commands as python expressions using eval(), commands are treated as f-strings")
-    group1.add_argument("--pyp", action="store_true", dest="pyprt",
-                        help="evaluates commands as python f-strings then prints them")
+    group1.add_argument("-x", "--pyex", action="store_true", dest="pyex",
+                        help="executes commands as python code using exec()")
+    group1.add_argument("-e", "--pyev", action="store_true", dest="pyev",
+                        help="evaluates commands as python expressions using eval() then prints the result")
+    group1.add_argument("-p", "--pypr", action="store_true", dest="pyprt",
+                        help="evaluates commands as python f-strings then prints them (implies --fstring)")
     parser.add_argument("--import", action="append", type=str, default=[], metavar=("library"), dest="imprt",
                         help="executes 'import <library>' for each library")
     parser.add_argument("--im", "--importstar", action="append", type=str, default=[], metavar=("library"), dest="imprtstar",
@@ -433,9 +451,14 @@ def main() -> int:
     # set delimiter
     if args.null:
         args.delim = "\0"
+    elif args.lines:
+        args.delim = "\n"
     # enable format string mode
     if args.re_split is not None or args.re_groups is not None:
         args.format_str = True
+    # enable f-string mode
+    if args.pyprt:
+        args.fstring = True
     # enable shell on windows
     if sys.platform.startswith("win32"):
         args.subprocess_shell = True

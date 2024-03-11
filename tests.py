@@ -79,49 +79,49 @@ class TestPyxargs(unittest.TestCase):
             self.assertEqual(result, ['out hello\n', 'out world\n', 'out bye\n', 'out world\n'])
 
     def test_stdin_delimiter_py(self):
-        cmd = "echo hello,world,bye,world | python pyxargs.py -d , --py \"print('{}')\""
+        cmd = "echo hello,world,bye,world | python pyxargs.py -d , -x \"print('{}')\""
         with os.popen(cmd) as result:
             result = result.readlines()
             self.assertEqual(result, ['hello\n', 'world\n', 'bye\n', 'world\n'])
 
     def test_trailing_chars_removed(self):
-        cmd = "echo hello,world,bye,world | python pyxargs.py -d , --dry-run --py \"print('{}')\""
+        cmd = "echo hello,world,bye,world | python pyxargs.py -d , --dry-run -x \"print('{}')\""
         with os.popen(cmd) as result:
             result = result.readlines()
             self.assertEqual(result, ["print('hello')\n", "print('world')\n", "print('bye')\n", "print('world')\n"])
 
     def test_extra_delimiter(self):
-        cmd = "echo hello,world,bye,world , | python pyxargs.py -d , --py \"print('{}')\""
+        cmd = "echo hello,world,bye,world , | python pyxargs.py -d , -x \"print('{}')\""
         with os.popen(cmd) as result:
             result = result.readlines()
             self.assertEqual(result, ['hello\n', 'world\n', 'bye\n', 'world \n'])
 
     def test_delimiter_space(self):
-        cmd = "echo hello world bye world | python pyxargs.py -d \" \" --py \"print('{}')\""
+        cmd = "echo hello world bye world | python pyxargs.py -d \" \" -x \"print('{}')\""
         with os.popen(cmd) as result:
             result = result.readlines()
             self.assertEqual(result, ['hello\n', 'world\n', 'bye\n', 'world\n'])
 
     def test_delimiter_whitespace(self):
-        cmd = "echo hello world bye world | python pyxargs.py -m stdin --py \"print('{}')\""
+        cmd = "echo hello world bye world | python pyxargs.py -m stdin -x \"print('{}')\""
         with os.popen(cmd) as result:
             result = result.readlines()
             self.assertEqual(result, ['hello\n', 'world\n', 'bye\n', 'world\n'])
 
     def test_pre_post_exec(self):
-        cmd = "echo hello world bye world | python pyxargs.py -m stdin --pre \"counter = 0\" --post \"print(counter)\" --py \"print('{}'); counter += 1\""
+        cmd = "echo hello world bye world | python pyxargs.py -m stdin --pre \"counter = 0\" --post \"print(counter)\" -x \"print('{}'); counter += 1\""
         with os.popen(cmd) as result:
             result = result.readlines()
             self.assertEqual(result, ['hello\n', 'world\n', 'bye\n', 'world\n', '4\n'])
 
     def test_exec_namespace(self):
-        cmd = "echo hello world bye world | python pyxargs.py -m stdin --pre \"output = 0\"  --post \"print(locals())\" --py \"print('{}'); output += 1\""
+        cmd = "echo hello world bye world | python pyxargs.py -m stdin --pre \"output = 0\"  --post \"print(locals())\" -x \"print('{}'); output += 1\""
         with os.popen(cmd) as result:
             result = result.readlines()
             self.assertEqual(result, ['hello\n', 'world\n', 'bye\n', 'world\n', "{'output': 4}\n"])
 
     def test_import(self):
-        cmd = "echo hello world bye world | python pyxargs.py -m stdin --import math --importstar math --pre \"output = 0\" --post \"print(output)\" --py \"print('{}'); output += math.sin(pi/2)\""
+        cmd = "echo hello world bye world | python pyxargs.py -m stdin --import math --importstar math --pre \"output = 0\" --post \"print(output)\" -x \"print('{}'); output += math.sin(pi/2)\""
         with os.popen(cmd) as result:
             result = result.readlines()
             self.assertEqual(result, ['hello\n', 'world\n', 'bye\n', 'world\n', '4.0\n'])

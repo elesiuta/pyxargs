@@ -12,10 +12,11 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/elesiuta/pyxargs",
-    py_modules=['pyxargs'],
+    py_modules=["pyxargs"],
     entry_points={
-        'console_scripts': [
-            'pyxargs = pyxargs:main'
+        "console_scripts": [
+            "pyxargs = pyxargs:main",
+            "pyxr = pyxargs:main"
         ]
     },
     classifiers=[
@@ -33,5 +34,5 @@ setuptools.setup(
         "Environment :: Console",
         "Development Status :: 5 - Production/Stable",
     ],
-    test_suite = 'tests',
+    test_suite = "tests",
 )
