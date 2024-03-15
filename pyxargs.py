@@ -36,10 +36,11 @@ __version__: typing.Final[str] = "3.1.0"
 
 
 def replace_surrogates(string: str) -> str:
+    """safely replace surrogates to avoid encoding errors"""
     return string.encode('utf16', 'surrogatepass').decode('utf16', 'replace')
 
 
-def colour_print(data: typing.Union[str, list], colour: str) -> None:
+def colour_print(cmd: list, colour: str) -> None:
     """safely print commands to the terminal, with optional colour"""
     COLOURS = {
         "0": "",
@@ -49,15 +50,13 @@ def colour_print(data: typing.Union[str, list], colour: str) -> None:
         "B": "\033[94m",
     }
     END = "" if colour == "0" else "\033[0m"
-    if isinstance(data, list) and len(data) == 1:
+    if len(cmd) == 1:
         # special case for len 1 (short or already joined) for nicer printing as a string
-        data = data[0]
-    if isinstance(data, list):
+        print(COLOURS[colour] + replace_surrogates(cmd[0]) + END)
+    else:
         # print list of arguments as run by pyxargs
-        data = [replace_surrogates(string) for string in data]
-        print(COLOURS[colour] + str(data) + END)
-    elif isinstance(data, str):
-        print(COLOURS[colour] + replace_surrogates(data) + END)
+        safe_cmd = [replace_surrogates(part) for part in cmd]
+        print(COLOURS[colour] + str(safe_cmd) + END)
 
 
 def build_commands(args: argparse.Namespace, stdin: str) -> list:
@@ -139,7 +138,7 @@ def build_command(args: argparse.Namespace, dir_path: str, basename: str, arg_in
     if args.max_chars is not None:
         if len(shlex.join(command)) > args.max_chars:
             if args.verbose:
-                colour_print(f"Command too long for: {arg_input}", "R")
+                colour_print([f"Command too long for: {arg_input}"], "R")
             return [], "", []
     # join command if required, shlex required for shell, extra escaped quotes can be problematic for python
     if len(command) > 1:
