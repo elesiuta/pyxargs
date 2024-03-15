@@ -134,8 +134,8 @@ def build_command(args: argparse.Namespace, dir_path: str, basename: str, arg_in
         if len(shlex.join(command)) > args.max_chars:
             if args.verbose:
                 colour_print(f"Command too long for: {arg_input}", "R")
-            return []
-    # join command if required
+            return [], "", []
+    # join command if required, shlex required for shell, and just being consistent for pyex, pyev, pyprt
     if args.pyex or args.pyev or args.pyprt or args.subprocess_shell:
         if len(command) > 1:
             command = [shlex.join(command)]
