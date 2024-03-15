@@ -40,29 +40,24 @@ def replace_surrogates(string: str) -> str:
 
 
 def colour_print(data: typing.Union[str, list], colour: str) -> None:
-    colours = {
+    """safely print commands to the terminal, with optional colour"""
+    COLOURS = {
+        "0": "",
         "R": "\033[91m",
         "G": "\033[92m",
         "Y": "\033[93m",
         "B": "\033[94m",
     }
+    END = "" if colour == "0" else "\033[0m"
     if isinstance(data, list) and len(data) == 1:
+        # special case for len 1 (short or already joined) for nicer printing as a string
         data = data[0]
     if isinstance(data, list):
+        # print list of arguments as run by pyxargs
         data = [replace_surrogates(string) for string in data]
-        print(colours[colour] + str(data) + "\033[0m")
+        print(COLOURS[colour] + str(data) + END)
     elif isinstance(data, str):
-        print(colours[colour] + replace_surrogates(data) + "\033[0m")
-
-
-def safe_print(data: typing.Union[str, list]) -> None:
-    if isinstance(data, list) and len(data) == 1:
-        data = data[0]
-    if isinstance(data, list):
-        data = [replace_surrogates(string) for string in data]
-        print(str(data))
-    elif isinstance(data, str):
-        print(replace_surrogates(data))
+        print(COLOURS[colour] + replace_surrogates(data) + END)
 
 
 def build_commands(args: argparse.Namespace, stdin: str) -> list:
@@ -214,12 +209,11 @@ def execute_command(args: argparse.Namespace, command_dict: dict, user_namespace
     if args.input_mode == "file":
         os.chdir(dir_path)
     if args.dry_run:
-        safe_print(cmd)
+        colour_print(cmd, "0")
         return
     # optionally print, then execute command
     if args.verbose:
-        # special case for len 1 (short or already joined) to avoid extra shell escaped quotes
-        joined_cmd = shlex.join(cmd)
+        old_cmd = cmd.copy()
         colour_print(cmd, "B")
     if args.fstring:
         # evaluate f-strings
@@ -230,8 +224,7 @@ def execute_command(args: argparse.Namespace, command_dict: dict, user_namespace
             return
         # print verbose again after evaluation, pyprt already prints at this stage
         if args.verbose and not args.pyprt:
-            new_joined_cmd = shlex.join(cmd)
-            if new_joined_cmd != joined_cmd:
+            if cmd != old_cmd:
                 colour_print(cmd, "Y")
     if args.pyex:
         try:
