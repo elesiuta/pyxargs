@@ -130,7 +130,7 @@ class TestPyxargs(unittest.TestCase):
         cmd = "echo hello world | python pyxargs.py -m stdin --dry-run echo out {}"
         with os.popen(cmd) as result:
             result = result.readlines()
-            self.assertEqual(result, ['echo out hello\n', 'echo out world\n'])
+            self.assertEqual(result, ["['echo', 'out', 'hello']\n", "['echo', 'out', 'world']\n"])
 
     def test_read_items_file(self):
         cmd = "python pyxargs.py -a test.txt echo out {}"
