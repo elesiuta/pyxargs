@@ -2,7 +2,7 @@
 
 This started as a simple solution to the [encoding problem with xargs](https://en.wikipedia.org/wiki/Xargs#Encoding_problem). It is a partial and opinionated implementation of xargs with the goal of being easier to use for most use cases.  
 
-It also contains some additional features which may or may not be useful, such as taking python code as arguments to be executed, or filtering input with regular expressions. No new features are planned.  
+It also contains additional features for AWK-like data processing, such as taking python code as arguments to be executed, or filtering with regular expressions.  
 
 You can install [pyxargs](https://github.com/elesiuta/pyxargs/) from [PyPI](https://pypi.org/project/pyxargs/).  
 ## Command Line Interface
@@ -10,9 +10,8 @@ You can install [pyxargs](https://github.com/elesiuta/pyxargs/) from [PyPI](http
 usage: pyxargs [options] command [initial-arguments ...]
        pyxargs -h | --help | --examples | --version
 
-Build and execute command lines or python code from standard input or file
-paths, a partial and opinionated implementation of xargs in python with some
-added features. The file input mode (default if stdin is not connected) builds
+Build and execute command lines, python code, or mix from standard input or
+file paths. The file input mode (default if stdin is not connected) builds
 commands using filenames only and executes them in their respective
 directories, this is useful when dealing with file paths containing multiple
 character encodings.
@@ -43,6 +42,8 @@ options:
                         (for input mode: stdin)
   -0, --null            input items are separated by a null character instead
                         of whitespace (for input mode: stdin)
+  -l, --lines           input items are separated by a newline character
+                        instead of whitespace (for input mode: stdin)
   -d delim, --delimiter delim
                         input items are separated by the specified delimiter
                         instead of whitespace (for input mode: stdin)
@@ -56,10 +57,11 @@ options:
                         re.search(regex, input).groups() before building
                         command (after separating by delimiter), use {0}, {1},
                         ... to specify placement (implies --format)
-  -f, --format          format command with input using str.format() instead
-                        of appending or replacing via -I replace-str, the
-                        command is then evaluated as an f-string, use {0},
-                        {1}, ... to specify placement and {{expr}} to evaluate
+  --format              format command with input using str.format() instead
+                        of appending or replacing via -I replace-str, use {0},
+                        {1}, ... to specify placement, if the command is then
+                        evaluated as an f-string (--fstring) escape using
+                        double curly braces as {{expr}} to evaluate
                         expressions
   -I replace-str        replace occurrences of replace-str in command with
                         input, default: {}
@@ -72,15 +74,17 @@ options:
   -o                    omit inputs matching regex instead
   -b                    only match regex against basename of input (for input
                         modes: file, path, abspath)
+  -f, --fstring         evaluates commands as python f-strings before
+                        execution
   --max-chars n         omits any command line exceeding n characters, no
                         limit by default
   --sh, --shell         executes commands through the shell (subprocess
                         shell=True) (no effect on Windows)
-  --py, --pyex          executes commands as python code using exec(),
-                        commands are treated as f-strings
-  --pyev                evaluates commands as python expressions using eval(),
-                        commands are treated as f-strings
-  --pyp                 evaluates commands as python f-strings then prints them
+  -x, --pyex            executes commands as python code using exec()
+  -e, --pyev            evaluates commands as python expressions using eval()
+                        then prints the result
+  -p, --pypr            evaluates commands as python f-strings then prints
+                        them (implies --fstring)
   --import library      executes 'import <library>' for each library
   --im library, --importstar library
                         executes 'from <library> import *' for each library
@@ -110,19 +114,30 @@ options:
   > echo bacon eggs | pyxargs echo spam
 
 # python code can be used in place of a command
-  > pyxargs --py "print(f'input file: {} executed in: {os.getcwd()}')"
+  > pyxargs --pyex "print(f'input file: {} executed in: {os.getcwd()}')"
+
+# a shorter version of this command with --pypr and the magic variable d
+  > pyxargs -p "input file: {} executed in: {d}"
+
+# python f-strings can also be used to format regular commands
+  > pyxargs -f echo "input file: {x} executed in: {d}"
 
 # python code can also run before or after all the commands
-  > pyxargs --pre "n=0" --post "print(n,'files')" --py "n+=1"
+  > pyxargs --pre "n=0" --post "print(n,'files')" -x "n+=1"
 
 # you can also evaluate and print python f-strings, the index i is provided
-  > pyxargs --pyp "number: {i}\tname: {}"
+  > pyxargs --pypr "number: {i}\tname: {}"
 
-# other variables: j=remaining, n=total, x=input, l=[x] (split x if -s or -g)
-  > pyxargs --pyp "i={i}\tj={j}\tn={n}\tx={x}\tl={l}"
+# other variables: j=remaining, n=total, x=input, d=dir, a[i]=x
+  > pyxargs -p "i={i}\tj={j}\tn={n}\tx={x}\td={d}\ta[{i}]={a[i]}={a[-j]}"
+  > pyxargs -p "prev: {'START' if i<1 else a[i-1]}\t" \
+               "current: {a[i]}\tnext: {'END' if j<1 else a[i+1]}"
 
-# these variables are only in the global scope, so they won't overwrite locals
-  > pyxargs --pre "i=1;j=2;n=5;x=3;l=3;" --pyp "i={i} j={j} n={n} x={x} l={l}"
+# split variables: s=x.split(), r is regex split via -s or -g, otherwise r=[x]
+  > pyxargs -m p -s "/" -p "s={s}\tr={r}"
+
+# given variables are only in the global scope, so they won't overwrite locals
+  > pyxargs --pre "i=1;j=2;n=5;x=3;l=3;" --p "i={i} j={j} n={n} x={x} l={l}"
 
 # regular expressions can be used to filter and modify inputs
   > pyxargs -r \.py --resub \.py .txt {new} echo {} -\> {new}
@@ -142,7 +157,7 @@ options:
     --post "print(dumps(d))" --py "d['{0}'] = '{1}'"
 
 # use double curly braces to escape for f-strings since str.format() is first
-  > cat /etc/hosts | pyxargs -d \n -s "\s+" --pyp "{{i}}:{{'{1}'.upper()}}"
+  > cat /etc/hosts | pyxargs -d \n -s "\s+" -p "{{i}}:{{'{1}'.upper()}}"
 
 # this and the following examples will compare usage with find & xargs
   > find ./ -name "*" -type f -print0 | xargs -0 -I {} echo {}
@@ -160,5 +175,5 @@ options:
   > pyxargs -m path echo ./{}
 
 # and now for something completely different, python code for the command
-  > pyxargs -m path --py "print('./{}')"
+  > pyxargs -m path -x "print('./{}')"
 ```

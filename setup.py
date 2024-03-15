@@ -8,7 +8,7 @@ setuptools.setup(
     name="pyxargs",
     version=pyxargs.__version__,
     python_requires=">=3.8",
-    description="A partial and opinionated implementation of xargs in python with some added features",
+    description="Command line Python scripting with an xargs-like interface and AWK-like capabilities for data processing and task automation",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/elesiuta/pyxargs",

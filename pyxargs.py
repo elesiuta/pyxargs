@@ -285,7 +285,8 @@ def main() -> int:
 
     # other variables: j=remaining, n=total, x=input, d=dir, a[i]=x
       > pyxargs -p "i={i}\tj={j}\tn={n}\tx={x}\td={d}\ta[{i}]={a[i]}={a[-j]}"
-      > pyxargs -p "prev: {'START' if i<1 else a[i-1]}\tcurrent: {a[i]}\tnext: {'END' if j<1 else a[i+1]}"
+      > pyxargs -p "prev: {'START' if i<1 else a[i-1]}\t" \
+                   "current: {a[i]}\tnext: {'END' if j<1 else a[i+1]}"
 
     # split variables: s=x.split(), r is regex split via -s or -g, otherwise r=[x]
       > pyxargs -m p -s "/" -p "s={s}\tr={r}"
