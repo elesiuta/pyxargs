@@ -464,7 +464,7 @@ def main() -> int:
         args.subprocess_shell = True
     # check for invalid arguments
     if sys.flags.optimize > 0:
-        print("Error: -O (optimize) flag not support", file=sys.stderr)
+        print("Error: -O (optimize) flag not supported", file=sys.stderr)
         return 1
     assert os.path.isdir(args.base_dir) and os.getcwd() == args.base_dir
     if args.input_mode == "stdin":
