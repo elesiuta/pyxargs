@@ -39,24 +39,35 @@ def replace_surrogates(string: str) -> str:
     return string.encode('utf16', 'surrogatepass').decode('utf16', 'replace')
 
 
-def colour_print(string: str, colour: str) -> None:
+def colour_print(data: typing.Union[str, list], colour: str) -> None:
     colours = {
         "R": "\033[91m",
         "G": "\033[92m",
         "Y": "\033[93m",
         "B": "\033[94m",
     }
-    string = replace_surrogates(string)
-    print(colours[colour] + string + "\033[0m")
+    if isinstance(data, list) and len(data) == 1:
+        data = data[0]
+    if isinstance(data, list):
+        data = [replace_surrogates(string) for string in data]
+        print(colours[colour] + str(data) + "\033[0m")
+    elif isinstance(data, str):
+        print(colours[colour] + replace_surrogates(data) + "\033[0m")
 
 
-def safe_print(string: str) -> None:
-    print(replace_surrogates(string))
+def safe_print(data: typing.Union[str, list]) -> None:
+    if isinstance(data, list) and len(data) == 1:
+        data = data[0]
+    if isinstance(data, list):
+        data = [replace_surrogates(string) for string in data]
+        print(str(data))
+    elif isinstance(data, str):
+        print(replace_surrogates(data))
 
 
 def build_commands(args: argparse.Namespace, stdin: str) -> list:
     command_dicts = [{"all_inputs": []}]
-    append_input = not (args.pyex or args.pyev or args.pyprt or args.resub or args.format_str) and args.replace_str is None and all("{}" not in arg for arg in args.command)
+    append_input = not (args.pyex or args.pyev or args.pyprt or args.resub or args.format_str or args.fstring) and (args.replace_str is None) and all("{}" not in arg for arg in args.command)
     args.replace_str = "{}" if args.replace_str is None else args.replace_str
     # build commands using standard input mode or by walking the directory tree
     if args.input_mode == "stdin":
@@ -135,10 +146,12 @@ def build_command(args: argparse.Namespace, dir_path: str, basename: str, arg_in
             if args.verbose:
                 colour_print(f"Command too long for: {arg_input}", "R")
             return [], "", []
-    # join command if required, shlex required for shell, and just being consistent for pyex, pyev, pyprt
-    if args.pyex or args.pyev or args.pyprt or args.subprocess_shell:
-        if len(command) > 1:
+    # join command if required, shlex required for shell, extra escaped quotes can be problematic for python
+    if len(command) > 1:
+        if args.subprocess_shell:
             command = [shlex.join(command)]
+        elif args.pyex or args.pyev or args.pyprt:
+            command = [" ".join(command)]        
     return command, arg_input, arg_input_split
 
 
@@ -165,10 +178,7 @@ def execute_commands(args: argparse.Namespace, command_dicts: list) -> int:
     # execute commands
     if args.interactive:
         for command_dict in command_dicts:
-            if len(command_dict["cmd"]) == 1:
-                colour_print(command_dict["cmd"][0], "G")
-            else:
-                colour_print(shlex.join(command_dict["cmd"]), "G")
+            colour_print(command_dict["cmd"], "G")
             print("Run command (Yes/NO/Quit)?")
             run = input("> ")
             if run.lower().startswith("y"):
@@ -204,19 +214,13 @@ def execute_command(args: argparse.Namespace, command_dict: dict, user_namespace
     if args.input_mode == "file":
         os.chdir(dir_path)
     if args.dry_run:
-        if len(cmd) == 1:
-            safe_print(cmd[0])
-        else:
-            safe_print(shlex.join(cmd))
+        safe_print(cmd)
         return
     # optionally print, then execute command
     if args.verbose:
         # special case for len 1 (short or already joined) to avoid extra shell escaped quotes
-        if len(cmd) == 1:
-            joined_cmd = cmd[0]
-        else:
-            joined_cmd = shlex.join(cmd)
-        colour_print(joined_cmd, "B")
+        joined_cmd = shlex.join(cmd)
+        colour_print(cmd, "B")
     if args.fstring:
         # evaluate f-strings
         try:
@@ -226,12 +230,9 @@ def execute_command(args: argparse.Namespace, command_dict: dict, user_namespace
             return
         # print verbose again after evaluation, pyprt already prints at this stage
         if args.verbose and not args.pyprt:
-            if len(cmd) == 1:
-                new_joined_cmd = cmd[0]
-            else:
-                new_joined_cmd = shlex.join(cmd)
+            new_joined_cmd = shlex.join(cmd)
             if new_joined_cmd != joined_cmd:
-                colour_print(new_joined_cmd, "Y")
+                colour_print(cmd, "Y")
     if args.pyex:
         try:
             exec(cmd[0], globals(), user_namespace)
@@ -259,8 +260,7 @@ def main() -> int:
             if text[:2] == 'F!':
                 return text.splitlines()[1:]
             return argparse.HelpFormatter._split_lines(self, text, width)
-    readme = ("Build and execute command lines or python code from standard input or file paths, "
-              "a partial and opinionated implementation of xargs in python with some added features. "
+    readme = ("Build and execute command lines, python code, or mix from standard input or file paths. "
               "The file input mode (default if stdin is not connected) builds commands using filenames only and executes them in their respective directories, "
               "this is useful when dealing with file paths containing multiple character encodings.")
     examples = textwrap.dedent(r"""
@@ -279,6 +279,12 @@ def main() -> int:
     # python code can be used in place of a command
       > pyxargs --pyex "print(f'input file: {} executed in: {os.getcwd()}')"
 
+    # a shorter version of this command with --pypr and the magic variable d
+      > pyxargs -p "input file: {} executed in: {d}"
+
+    # python f-strings can also be used to format regular commands
+      > pyxargs -f echo "input file: {x} executed in: {d}"
+
     # python code can also run before or after all the commands
       > pyxargs --pre "n=0" --post "print(n,'files')" -x "n+=1"
 
@@ -287,6 +293,7 @@ def main() -> int:
 
     # other variables: j=remaining, n=total, x=input, d=dir, a[i]=x
       > pyxargs -p "i={i}\tj={j}\tn={n}\tx={x}\td={d}\ta[{i}]={a[i]}={a[-j]}"
+      > pyxargs -p "prev: {'START' if i<1 else a[i-1]}\tcurrent: {a[i]}\tnext: {'END' if j<1 else a[i+1]}"
 
     # split variables: s=x.split(), r is regex split via -s or -g, otherwise r=[x]
       > pyxargs -m p -s "/" -p "s={s}\tr={r}"
