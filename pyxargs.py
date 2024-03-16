@@ -33,7 +33,6 @@ import typing
 
 
 __version__: typing.Final[str] = "3.2.0"
-site.addsitedir("/usr/lib/python3/dist-packages")
 
 
 def replace_surrogates(string: str) -> str:
@@ -163,7 +162,8 @@ def execute_commands(args: argparse.Namespace, command_dicts: list) -> int:
     n = len(command_dicts)
     j = n
     a = all_inputs
-    # pre execution tasks
+    # pre execution tasks (add system packages in case of pipx or venv, safe to add duplicate or non-existent paths)
+    site.addsitedir("/usr/lib/python3/dist-packages")
     for lib in args.imprt:
         exec(f"import {lib}", globals(), user_namespace)
     for lib in args.imprtstar:
@@ -412,19 +412,23 @@ def main() -> int:
         else:
             with open(args.command_pickle[1], "rb") as f:
                 command_dicts = pickle.load(f)
-        # run subprocesses with multiplexer if requested
+        # start subprocesses with multiplexer if requested then exit
         if args.procs is not None and args.chunk is None and not args.no_mux:
             multiplexer = "byobu" if shutil.which("byobu") else "tmux" if shutil.which("tmux") else None
             assert multiplexer is not None, "multiplexer not found: install byobu or tmux"
             session = time.strftime("pyxargs_%Y%m%d_%H%M%S")
+            # write commands to pickle
             command_pickle = tempfile.NamedTemporaryFile()
             pickle.dump(command_dicts, command_pickle.file)
             command_pickle.file.flush()
+            # start multiplexer session
             pyxargs_command = [sys.executable, os.path.abspath(__file__), "--chunk", "0", "--_command_pickle", args.input_mode, command_pickle.name] + sys.argv[1:]
             subprocess.run([multiplexer, "new-session", "-d", "-s", session, shlex.join(pyxargs_command)])
+            # create new window for each process, and set chunk number for each
             for proc_i in range(1, args.procs):
                 pyxargs_command[3] = str(i)
                 subprocess.run([multiplexer, "new-window", "-t", f"{session}:{proc_i}", shlex.join(pyxargs_command)])
+            # attach tty to fix input for interactive mode with mux if data piped to stdin (even if data wasn't read)
             if not sys.stdin.isatty():
                 sys.stdin = sys.__stdin__ = open("/dev/tty")
                 os.dup2(sys.stdin.fileno(), 0)
@@ -432,7 +436,7 @@ def main() -> int:
             else:
                 subprocess.run([multiplexer, "attach-session", "-t", session])
             return 0
-        # execute commands (in chunks if requested)
+        # execute commands (only specific chunk if requested)
         if args.chunk is None:
             return execute_commands(args, command_dicts)
         else:

@@ -4,7 +4,7 @@ This started as a simple solution to the [encoding problem with xargs](https://e
 
 It also contains additional features for AWK-like data processing, such as taking python code as arguments to be executed, or filtering with regular expressions.  
 
-You can install [pyxargs](https://github.com/elesiuta/pyxargs/) from [PyPI](https://pypi.org/project/pyxargs/) with `pipx install pyxargs`  
+You can install [pyxargs](https://github.com/elesiuta/pyxargs/) from [PyPI](https://pypi.org/project/pyxargs/).  
 ## Command Line Interface
 ```
 usage: pyxr [options] command [initial-arguments ...]
