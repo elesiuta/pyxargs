@@ -97,7 +97,7 @@ def build_commands(args: argparse.Namespace, stdin: str) -> list:
 
 
 def build_command(args: argparse.Namespace, dir_path: str, basename: str, arg_input: str, append_input: bool) -> typing.Tuple[list, str, typing.Union[list, tuple]]:
-    # mode
+    # set arg_input based on mode (already set to correct value if stdin mode)
     if args.input_mode == "file":
         arg_input = basename
     elif args.input_mode == "path":
@@ -105,17 +105,23 @@ def build_command(args: argparse.Namespace, dir_path: str, basename: str, arg_in
         arg_input = os.path.relpath(arg_input, args.base_dir)
     elif args.input_mode == "abspath":
         arg_input = os.path.join(dir_path, basename)
-    # check re match
+    # check whether to omit input based on regex
     if args.input_mode == "stdin":
         if (re.search(args.regex, arg_input) is not None) == args.regex_omit:
+            if args.verbose:
+                colour_print([f"Input omitted by regex: {arg_input}"], "Y")
             return [], "", []
     elif args.regex_basename:
         if (re.search(args.regex, basename) is not None) == args.regex_omit:
+            if args.verbose:
+                colour_print([f"Input omitted by regex: {arg_input}"], "Y")
             return [], "", []
     else:
         relpath = os.path.join(dir_path, basename)
         relpath = os.path.relpath(relpath, args.base_dir)
         if (re.search(args.regex, relpath) is not None) == args.regex_omit:
+            if args.verbose:
+                colour_print([f"Input omitted by regex: {arg_input}"], "Y")
             return [], "", []
     # copy command first since some options mutate it
     command = args.command.copy()
