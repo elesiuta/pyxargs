@@ -24,6 +24,7 @@ import re
 import shlex
 import shutil
 import signal
+import site
 import subprocess
 import sys
 import tempfile
@@ -33,6 +34,7 @@ import typing
 
 
 __version__: typing.Final[str] = "3.2.0"
+site.addsitedir("/usr/lib/python3/dist-packages")
 
 
 def replace_surrogates(string: str) -> str:
