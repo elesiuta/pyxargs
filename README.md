@@ -4,11 +4,11 @@ This started as a simple solution to the [encoding problem with xargs](https://e
 
 It also contains additional features for AWK-like data processing, such as taking python code as arguments to be executed, or filtering with regular expressions.  
 
-You can install [pyxargs](https://github.com/elesiuta/pyxargs/) from [PyPI](https://pypi.org/project/pyxargs/).  
+You can install [pyxargs](https://github.com/elesiuta/pyxargs/) from [PyPI](https://pypi.org/project/pyxargs/) with `pipx install pyxargs`  
 ## Command Line Interface
 ```
-usage: pyxargs [options] command [initial-arguments ...]
-       pyxargs -h | --help | --examples | --version
+usage: pyxr [options] command [initial-arguments ...]
+       pyxr -h | --help | --version
 
 Build and execute command lines, python code, or mix from standard input or
 file paths. The file input mode (default if stdin is not connected) builds
@@ -18,7 +18,6 @@ character encodings.
 
 options:
   -h, --help            show this help message and exit
-  --examples            show example usage and exit
   --version             show program's version number and exit
   -m input-mode         options are:
                         file    = build commands from filenames and execute in
@@ -102,78 +101,78 @@ options:
 ## Examples
 ```bash
 # by default, pyxargs will use filenames and run commands in each directory
-  > pyxargs echo
+  > pyxr echo
 
 # instead of appending inputs, you can specify a location with {}
-  > pyxargs echo spam {} spam
+  > pyxr echo spam {} spam
 
 # and like xargs, you can also specify the replace-str with -I
-  > pyxargs -I eggs echo spam eggs spam literal {}
+  > pyxr -I eggs echo spam eggs spam literal {}
 
 # if stdin is connected, it will be used instead of filenames by default
-  > echo bacon eggs | pyxargs echo spam
+  > echo bacon eggs | pyxr echo spam
 
 # python code can be used in place of a command
-  > pyxargs --pyex "print(f'input file: {} executed in: {os.getcwd()}')"
+  > pyxr --pyex "print(f'input file: {} executed in: {os.getcwd()}')"
 
 # a shorter version of this command with --pypr and the magic variable d
-  > pyxargs -p "input file: {} executed in: {d}"
+  > pyxr -p "input file: {} executed in: {d}"
 
 # python f-strings can also be used to format regular commands
-  > pyxargs -f echo "input file: {x} executed in: {d}"
+  > pyxr -f echo "input file: {x} executed in: {d}"
 
 # python code can also run before or after all the commands
-  > pyxargs --pre "n=0" --post "print(n,'files')" -x "n+=1"
+  > pyxr --pre "n=0" --post "print(n,'files')" -x "n+=1"
 
 # you can also evaluate and print python f-strings, the index i is provided
-  > pyxargs --pypr "number: {i}\tname: {}"
+  > pyxr --pypr "number: {i}\tname: {}"
 
 # other variables: j=remaining, n=total, x=input, d=dir, a[i]=x
-  > pyxargs -p "i={i}\tj={j}\tn={n}\tx={x}\td={d}\ta[{i}]={a[i]}={a[-j]}"
-  > pyxargs -p "prev: {'START' if i<1 else a[i-1]}\t" \
+  > pyxr -p "i={i}\tj={j}\tn={n}\tx={x}\td={d}\ta[{i}]={a[i]}={a[-j]}"
+  > pyxr -p "prev: {'START' if i<1 else a[i-1]}\t" \
                "current: {a[i]}\tnext: {'END' if j<1 else a[i+1]}"
 
 # split variables: s=x.split(), r is regex split via -s or -g, otherwise r=[x]
-  > pyxargs -m p -s "/" -p "s={s}\tr={r}"
+  > pyxr -m p -s "/" -p "s={s}\tr={r}"
 
 # given variables are only in the global scope, so they won't overwrite locals
-  > pyxargs --pre "i=1;j=2;n=5;x=3;l=3;" --p "i={i} j={j} n={n} x={x} l={l}"
+  > pyxr --pre "i=1;j=2;n=5;x=3;a=3;" -p "i={i} j={j} n={n} x={x} a={l}"
 
 # regular expressions can be used to filter and modify inputs
-  > pyxargs -r \.py --resub \.py .txt {new} echo {} -\> {new}
+  > pyxr -r \.py --resub \.py .txt {new} echo {} -\> {new}
 
 # you can test your command first with --dry-run (-n) or --interactive (-i)
-  > pyxargs -i echo filename: {}
+  > pyxr -i echo filename: {}
 
 # pyxargs can also run interactively in parallel by using byobu or tmux
-  > pyxargs -P 4 -i echo filename: {}
+  > pyxr -P 4 -i echo filename: {}
 
 # you can use pyxargs to create a JSON mapping of /etc/hosts
-  > cat /etc/hosts | pyxargs -d \n --im json --pre "d={}" \
+  > cat /etc/hosts | pyxr -d \n --im json --pre "d={}" \
     --post "print(dumps(d))" --py "d['{}'.split()[0]] = '{}'.split()[1]"
 
 # you can also do this with format strings and --split (-s) (uses regex)
-  > cat /etc/hosts | pyxargs -d \n -s "\s+" --im json --pre "d={}" \
+  > cat /etc/hosts | pyxr -d \n -s "\s+" --im json --pre "d={}" \
     --post "print(dumps(d))" --py "d['{0}'] = '{1}'"
 
 # use double curly braces to escape for f-strings since str.format() is first
-  > cat /etc/hosts | pyxargs -d \n -s "\s+" -p "{{i}}:{{'{1}'.upper()}}"
+  > cat /etc/hosts | pyxr -d \n -s "\s+" -p "{{i}}:{{'{1}'.upper()}}"
 
 # this and the following examples will compare usage with find & xargs
   > find ./ -name "*" -type f -print0 | xargs -0 -I {} echo {}
-  > find ./ -name "*" -type f -print0 | pyxargs -0 -I {} echo {}
+  > find ./ -name "*" -type f -print0 | pyxr -0 -I {} echo {}
 
 # pyxargs does not require '-I' to specify a replace-str (default: {})
-  > find ./ -name "*" -type f -print0 | pyxargs -0 echo {}
+  > find ./ -name "*" -type f -print0 | pyxr -0 echo {}
 
 # and in the absence of a replace-str, exactly one input is appended
-  > find ./ -name "*" -type f -print0 | pyxargs -0 echo
+  > find ./ -name "*" -type f -print0 | pyxr -0 echo
   > find ./ -name "*" -type f -print0 | xargs -0 --max-args=1 echo
   > find ./ -name "*" -type f -print0 | xargs -0 --max-lines=1 echo
 
 # pyxargs can use file paths as input without piping from another program
-  > pyxargs -m path echo ./{}
+  > pyxr -m path echo ./{}
 
 # and now for something completely different, python code for the command
-  > pyxargs -m path -x "print('./{}')"
+  > pyxr -m path -x "print('./{}')"
 ```

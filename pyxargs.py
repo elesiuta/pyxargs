@@ -28,7 +28,6 @@ import site
 import subprocess
 import sys
 import tempfile
-import textwrap
 import time
 import typing
 
@@ -257,93 +256,14 @@ def main() -> int:
     readme = ("Build and execute command lines, python code, or mix from standard input or file paths. "
               "The file input mode (default if stdin is not connected) builds commands using filenames only and executes them in their respective directories, "
               "this is useful when dealing with file paths containing multiple character encodings.")
-    examples = textwrap.dedent(r"""
-    # by default, pyxargs will use filenames and run commands in each directory
-      > pyxargs echo
-
-    # instead of appending inputs, you can specify a location with {}
-      > pyxargs echo spam {} spam
-
-    # and like xargs, you can also specify the replace-str with -I
-      > pyxargs -I eggs echo spam eggs spam literal {}
-
-    # if stdin is connected, it will be used instead of filenames by default
-      > echo bacon eggs | pyxargs echo spam
-
-    # python code can be used in place of a command
-      > pyxargs --pyex "print(f'input file: {} executed in: {os.getcwd()}')"
-
-    # a shorter version of this command with --pypr and the magic variable d
-      > pyxargs -p "input file: {} executed in: {d}"
-
-    # python f-strings can also be used to format regular commands
-      > pyxargs -f echo "input file: {x} executed in: {d}"
-
-    # python code can also run before or after all the commands
-      > pyxargs --pre "n=0" --post "print(n,'files')" -x "n+=1"
-
-    # you can also evaluate and print python f-strings, the index i is provided
-      > pyxargs --pypr "number: {i}\tname: {}"
-
-    # other variables: j=remaining, n=total, x=input, d=dir, a[i]=x
-      > pyxargs -p "i={i}\tj={j}\tn={n}\tx={x}\td={d}\ta[{i}]={a[i]}={a[-j]}"
-      > pyxargs -p "prev: {'START' if i<1 else a[i-1]}\t" \
-                   "current: {a[i]}\tnext: {'END' if j<1 else a[i+1]}"
-
-    # split variables: s=x.split(), r is regex split via -s or -g, otherwise r=[x]
-      > pyxargs -m p -s "/" -p "s={s}\tr={r}"
-
-    # given variables are only in the global scope, so they won't overwrite locals
-      > pyxargs --pre "i=1;j=2;n=5;x=3;l=3;" --p "i={i} j={j} n={n} x={x} l={l}"
-
-    # regular expressions can be used to filter and modify inputs
-      > pyxargs -r \.py --resub \.py .txt {new} echo {} -\> {new}
-
-    # you can test your command first with --dry-run (-n) or --interactive (-i)
-      > pyxargs -i echo filename: {}
-
-    # pyxargs can also run interactively in parallel by using byobu or tmux
-      > pyxargs -P 4 -i echo filename: {}
-
-    # you can use pyxargs to create a JSON mapping of /etc/hosts
-      > cat /etc/hosts | pyxargs -d \n --im json --pre "d={}" \
-        --post "print(dumps(d))" --py "d['{}'.split()[0]] = '{}'.split()[1]"
-
-    # you can also do this with format strings and --split (-s) (uses regex)
-      > cat /etc/hosts | pyxargs -d \n -s "\s+" --im json --pre "d={}" \
-        --post "print(dumps(d))" --py "d['{0}'] = '{1}'"
-
-    # use double curly braces to escape for f-strings since str.format() is first
-      > cat /etc/hosts | pyxargs -d \n -s "\s+" -p "{{i}}:{{'{1}'.upper()}}"
-
-    # this and the following examples will compare usage with find & xargs
-      > find ./ -name "*" -type f -print0 | xargs -0 -I {} echo {}
-      > find ./ -name "*" -type f -print0 | pyxargs -0 -I {} echo {}
-
-    # pyxargs does not require '-I' to specify a replace-str (default: {})
-      > find ./ -name "*" -type f -print0 | pyxargs -0 echo {}
-
-    # and in the absence of a replace-str, exactly one input is appended
-      > find ./ -name "*" -type f -print0 | pyxargs -0 echo
-      > find ./ -name "*" -type f -print0 | xargs -0 --max-args=1 echo
-      > find ./ -name "*" -type f -print0 | xargs -0 --max-lines=1 echo
-
-    # pyxargs can use file paths as input without piping from another program
-      > pyxargs -m path echo ./{}
-
-    # and now for something completely different, python code for the command
-      > pyxargs -m path -x "print('./{}')"
-    """)
     parser = argparse.ArgumentParser(description=readme,
                                      formatter_class=lambda prog: ArgparseCustomFormatter(prog, max_help_position=24),
                                      usage="%(prog)s [options] command [initial-arguments ...]\n"
-                                           "       %(prog)s -h | --help | --examples | --version")
+                                           "       %(prog)s -h | --help | --version")
     group0 = parser.add_mutually_exclusive_group()
     group1 = parser.add_mutually_exclusive_group()
     parser.add_argument("command", action="store", type=str, nargs=argparse.REMAINDER,
                         help=argparse.SUPPRESS)
-    parser.add_argument("--examples", action="store_true", dest="examples",
-                        help="show example usage and exit")
     parser.add_argument("--version", action="version", version=__version__)
     parser.add_argument("--base-directory", type=str, default=os.getcwd(), metavar="base-directory", dest="base_dir",
                         help=argparse.SUPPRESS)
@@ -425,9 +345,6 @@ def main() -> int:
     parser.add_argument("-v", "--verbose", action="store_true", dest="verbose",
                         help="prints commands before executing them")
     args = parser.parse_args()
-    if args.examples:
-        print(examples)
-        return 0
     # determine input mode and read stdin available or required
     stdin = ""
     if args.input_mode in ["f", "p", "a", "s"]:
