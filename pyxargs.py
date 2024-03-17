@@ -17,6 +17,7 @@
 
 import argparse
 import io
+import json
 import multiprocessing
 import os
 import pickle
@@ -232,6 +233,13 @@ def execute_command(args: argparse.Namespace, command_dict: dict, user_namespace
             df = pd.read_table(io.StringIO(x), sep=None, engine="python")
         else:
             df = pd.read_table(x, sep=None, engine="python")
+    elif args.json:
+        global j
+        if args.input_mode == "stdin":
+            j = json.loads(x)
+        else:
+            with open(x, "r") as f:
+                j = json.load(f)
     # return early if dry run (still safe to do after setting variables, and tests if any fail, but probably still want to do this before evaluating f-strings)
     if args.dry_run:
         colour_print(cmd, "0")
@@ -285,8 +293,9 @@ def main() -> int:
                                      formatter_class=lambda prog: ArgparseCustomFormatter(prog, max_help_position=24),
                                      usage="%(prog)s [options] command [initial-arguments ...]\n"
                                            "       %(prog)s -h | --help | --version")
-    group0 = parser.add_mutually_exclusive_group()
-    group1 = parser.add_mutually_exclusive_group()
+    group0 = parser.add_mutually_exclusive_group()  # delimiter options
+    group1 = parser.add_mutually_exclusive_group()  # execution options
+    group2 = parser.add_mutually_exclusive_group()  # input options
     parser.add_argument("command", action="store", type=str, nargs=argparse.REMAINDER,
                         help=argparse.SUPPRESS)
     parser.add_argument("--version", action="version", version=__version__)
@@ -305,7 +314,7 @@ def main() -> int:
                              "stdin   = build commands from standard input and\n"
                              "          execute in the current directory\n"
                              "default: stdin if connected, otherwise file")
-    parser.add_argument("--folders", action="store_true", dest="folders",
+    group2.add_argument("--folders", action="store_true", dest="folders",
                         help="use folders instead files (for input modes: file, path, abspath)")
     parser.add_argument("-t", "--top", action="store_true", dest="top_level",
                         help="do not recurse into subdirectories (for input modes: file, path, abspath)")
@@ -337,8 +346,10 @@ def main() -> int:
                         help="only match regex against basename of input (for input modes: file, path, abspath)")
     parser.add_argument("-f", "--fstring", action="store_true", dest="fstring",
                         help="evaluates commands as python f-strings before execution")
-    parser.add_argument("--df", action="store_true", dest="dataframe",
+    group2.add_argument("--df", action="store_true", dest="dataframe",
                         help="reads each input into a dataframe and stores it in variable df, requires pandas")
+    group2.add_argument("-j", "--json", action="store_true", dest="json",
+                        help="reads each input as a json object and stores it in variable j")
     parser.add_argument("--max-chars", type=int, metavar="n", dest="max_chars",
                         help="omits any command line exceeding n characters, no limit by default")
     group1.add_argument("--sh", "--shell", action="store_true", dest="subprocess_shell",
