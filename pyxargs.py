@@ -214,12 +214,18 @@ def execute_command(args: argparse.Namespace, command_dict: dict, user_namespace
     if args.input_mode == "file":
         os.chdir(dir_path)
     # update variables available to the user
-    global i, j, n, a, d, x, r, s
+    global i, j, n, a, d, x, s
     i, j = i + 1, j - 1
     d = command_dict["dir"]
     x = command_dict["input"]
-    r = command_dict["input_split"]
-    s = x.split()
+    if args.re_split or args.re_groups:
+        s = command_dict["input_split"]
+    elif args.input_mode in ["path", "abspath"]:
+        s = x.split(os.path.sep)
+    elif args.input_mode == "file":
+        s = os.path.splitext(x)
+    else:
+        s = x.split()
     if args.dataframe:
         if args.input_mode == "stdin":
             df = pd.read_table(io.StringIO(x), sep=None, engine="python")
