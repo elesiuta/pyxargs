@@ -108,20 +108,22 @@ def build_command(args: argparse.Namespace, dir_path: str, basename: str, arg_in
     elif args.input_mode == "abspath":
         arg_input = os.path.join(dir_path, basename)
     # check whether to omit input based on regex
-    if args.input_mode == "stdin":
-        if (re.search(args.regex, arg_input) is not None) == args.regex_omit:
+    if args.regex_filter is None:
+        pass
+    elif args.input_mode == "stdin":
+        if (re.search(args.regex_filter, arg_input) is not None) == args.regex_omit:
             if args.verbose:
                 colour_print([f"Input omitted by regex: {arg_input}"], "R")
             return [], "", []
     elif args.regex_basename:
-        if (re.search(args.regex, basename) is not None) == args.regex_omit:
+        if (re.search(args.regex_filter, basename) is not None) == args.regex_omit:
             if args.verbose:
                 colour_print([f"Input omitted by regex: {arg_input}"], "R")
             return [], "", []
     else:
         relpath = os.path.join(dir_path, basename)
         relpath = os.path.relpath(relpath, args.base_dir)
-        if (re.search(args.regex, relpath) is not None) == args.regex_omit:
+        if (re.search(args.regex_filter, relpath) is not None) == args.regex_omit:
             if args.verbose:
                 colour_print([f"Input omitted by regex: {arg_input}"], "R")
             return [], "", []
@@ -338,7 +340,7 @@ def main() -> int:
                         help="replace occurrences of replace-str in command with input, default: {}")
     parser.add_argument("--resub", nargs=3, type=str, metavar=("pattern", "substitution", "replace-str"), dest="resub",
                         help="replace occurrences of replace-str in command with re.sub(patten, substitution, input)")
-    parser.add_argument("-r", type=str, default=".", metavar="regex", dest="regex",
+    parser.add_argument("-r", type=str, default=None, metavar="regex", dest="regex_filter",
                         help="only build commands from inputs matching regex for input mode stdin, and matching relative paths for all other input modes, uses re.search")
     parser.add_argument("-o", action="store_true", dest="regex_omit",
                         help="omit inputs matching regex instead")
@@ -435,6 +437,8 @@ def main() -> int:
         assert args.arg_file is None, f"invalid option --arg-file for input mode: {args.input_mode}"
     assert not args.format_str or args.replace_str is None, "invalid option --format-str: cannot specify -I replace-str"
     assert not (args.re_split and args.re_groups), "invalid option: cannot specify both --split and --groups"
+    assert not args.regex_omit or args.regex_filter is not None, "invalid option -o: requires -r regex"
+    assert not args.regex_basename or args.regex_filter is not None, "invalid option -b: requires -r regex"
     assert args.procs is None or args.procs > 0, "invalid option --procs: requires P > 0"
     assert args.chunk is None or args.procs is not None, "invalid option --chunk: --procs must be specified"
     assert args.chunk is None or 0 <= args.chunk < args.procs, "invalid option --chunk: requires 0 <= c < P"
