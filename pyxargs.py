@@ -236,12 +236,12 @@ def execute_command(args: argparse.Namespace, command_dict: dict, user_namespace
         else:
             df = pd.read_table(x, sep=None, engine="python")
     elif args.json:
-        global j
+        global js
         if args.input_mode == "stdin":
-            j = json.loads(x)
+            js = json.loads(x)
         else:
             with open(x, "r") as f:
-                j = json.load(f)
+                js = json.load(f)
     # return early if dry run (still safe to do after setting variables, and tests if any fail, but probably still want to do this before evaluating f-strings)
     if args.dry_run:
         colour_print(cmd, "0")
@@ -350,8 +350,8 @@ def main() -> int:
                         help="evaluates commands as python f-strings before execution")
     group2.add_argument("--df", action="store_true", dest="dataframe",
                         help="reads each input into a dataframe and stores it in variable df, requires pandas")
-    group2.add_argument("-j", "--json", action="store_true", dest="json",
-                        help="reads each input as a json object and stores it in variable j")
+    group2.add_argument("--js", action="store_true", dest="json",
+                        help="reads each input as a json object and stores it in variable js")
     parser.add_argument("--max-chars", type=int, metavar="n", dest="max_chars",
                         help="omits any command line exceeding n characters, no limit by default")
     group1.add_argument("--sh", "--shell", action="store_true", dest="subprocess_shell",
