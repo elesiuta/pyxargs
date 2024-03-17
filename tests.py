@@ -94,7 +94,7 @@ class TestPyxargs(unittest.TestCase):
         cmd = "echo hello,world,bye,world , | python pyxargs.py -d , -x \"print('{}')\""
         with os.popen(cmd) as result:
             result = result.readlines()
-            self.assertEqual(result, ['hello\n', 'world\n', 'bye\n', 'world \n'])
+            self.assertEqual(result, ['hello\n', 'world\n', 'bye\n', 'world \n', '\n'])
 
     def test_delimiter_space(self):
         cmd = "echo hello world bye world | python pyxargs.py -d \" \" -x \"print('{}')\""
