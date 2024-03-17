@@ -16,6 +16,7 @@
 # https://github.com/elesiuta/pyxargs
 
 import argparse
+import io
 import multiprocessing
 import os
 import pickle
@@ -170,6 +171,11 @@ def execute_commands(args: argparse.Namespace, command_dicts: list) -> int:
     a = all_inputs
     # pre execution tasks (add system packages in case of pipx or venv, safe to add duplicate or non-existent paths)
     site.addsitedir("/usr/lib/python3/dist-packages")
+    site.addsitedir(os.path.expanduser(f"~/.local/lib/python{sys.version_info.major}.{sys.version_info.minor}/site-packages"))
+    site.addsitedir(os.path.expandvars(f"$CONDA_PREFIX/lib/python{sys.version_info.major}.{sys.version_info.minor}/site-packages"))
+    if args.dataframe:
+        global pd
+        import pandas as pd
     for lib in args.imprt:
         exec(f"import {lib}", globals(), user_namespace)
     for lib in args.imprtstar:
@@ -202,6 +208,11 @@ def execute_commands(args: argparse.Namespace, command_dicts: list) -> int:
 
 
 def execute_command(args: argparse.Namespace, command_dict: dict, user_namespace: dict) -> None:
+    # prepare to execute command, change directory if required
+    dir_path = command_dict["dir"]
+    cmd = command_dict["cmd"]
+    if args.input_mode == "file":
+        os.chdir(dir_path)
     # update variables available to the user
     global i, j, n, a, d, x, r, s
     i, j = i + 1, j - 1
@@ -209,11 +220,12 @@ def execute_command(args: argparse.Namespace, command_dict: dict, user_namespace
     x = command_dict["input"]
     r = command_dict["input_split"]
     s = x.split()
-    # prepare to execute command or return if dry run
-    dir_path = command_dict["dir"]
-    cmd = command_dict["cmd"]
-    if args.input_mode == "file":
-        os.chdir(dir_path)
+    if args.dataframe:
+        if args.input_mode == "stdin":
+            df = pd.read_table(io.StringIO(x), sep=None, engine="python")
+        else:
+            df = pd.read_table(x, sep=None, engine="python")
+    # return early if dry run (still safe to do after setting variables, and tests if any fail, but probably still want to do this before evaluating f-strings)
     if args.dry_run:
         colour_print(cmd, "0")
         return
@@ -318,6 +330,8 @@ def main() -> int:
                         help="only match regex against basename of input (for input modes: file, path, abspath)")
     parser.add_argument("-f", "--fstring", action="store_true", dest="fstring",
                         help="evaluates commands as python f-strings before execution")
+    parser.add_argument("--df", action="store_true", dest="dataframe",
+                        help="reads each input into a dataframe and stores in variable df, requires pandas")
     parser.add_argument("--max-chars", type=int, metavar="n", dest="max_chars",
                         help="omits any command line exceeding n characters, no limit by default")
     group1.add_argument("--sh", "--shell", action="store_true", dest="subprocess_shell",
