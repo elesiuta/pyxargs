@@ -50,12 +50,14 @@ options:
                         split each input item with re.split(regex, input)
                         before building command (after separating by
                         delimiter), use {0}, {1}, ... to specify placement
-                        (implies --format)
+                        (implies --format), it is also stored as a list in the
+                        variable s
   -g regex, --groups regex
                         use regex capturing groups on each input item with
                         re.search(regex, input).groups() before building
                         command (after separating by delimiter), use {0}, {1},
-                        ... to specify placement (implies --format)
+                        ... to specify placement (implies --format), it is
+                        also stored as a tuple in the variable s
   --format              format command with input using str.format() instead
                         of appending or replacing via -I replace-str, use {0},
                         {1}, ... to specify placement, if the command is then
@@ -75,6 +77,8 @@ options:
                         modes: file, path, abspath)
   -f, --fstring         evaluates commands as python f-strings before
                         execution
+  --df                  reads each input into a dataframe and stores it in
+                        variable df, requires pandas
   --max-chars n         omits any command line exceeding n characters, no
                         limit by default
   --sh, --shell         executes commands through the shell (subprocess
@@ -127,13 +131,10 @@ options:
 # you can also evaluate and print python f-strings, the index i is provided
   > pyxr --pypr "number: {i}\tname: {}"
 
-# other variables: j=remaining, n=total, x=input, d=dir, a[i]=x
-  > pyxr -p "i={i}\tj={j}\tn={n}\tx={x}\td={d}\ta[{i}]={a[i]}={a[-j]}"
+# other variables: j=remaining, n=total, x=input, d=dir, a[i]=x, s=x.split()
+  > pyxr -p "i={i}\tj={j}\tn={n}\tx={x}\td={d}\ta[{i}]={a[i]}={a[-j]}\ts={s}"
   > pyxr -p "prev: {'START' if i<1 else a[i-1]}\t" \
                "current: {a[i]}\tnext: {'END' if j<1 else a[i+1]}"
-
-# split variables: s=x.split(), r is regex split via -s or -g, otherwise r=[x]
-  > pyxr -m p -s "/" -p "s={s}\tr={r}"
 
 # given variables are only in the global scope, so they won't overwrite locals
   > pyxr --pre "i=1;j=2;n=5;x=3;a=3;" -p "i={i} j={j} n={n} x={x} a={l}"

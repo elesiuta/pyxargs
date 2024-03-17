@@ -320,9 +320,9 @@ def main() -> int:
     group0.add_argument("-d", "--delimiter", type=str, default=None, metavar="delim", dest="delim",
                         help="input items are separated by the specified delimiter instead of whitespace (for input mode: stdin)")
     parser.add_argument("-s", "--split", type=str, default=None, metavar="regex", dest="re_split",
-                        help="split each input item with re.split(regex, input) before building command (after separating by delimiter), use {0}, {1}, ... to specify placement (implies --format)")
+                        help="split each input item with re.split(regex, input) before building command (after separating by delimiter), use {0}, {1}, ... to specify placement (implies --format), it is also stored as a list in the variable s")
     parser.add_argument("-g", "--groups", type=str, default=None, metavar="regex", dest="re_groups",
-                        help="use regex capturing groups on each input item with re.search(regex, input).groups() before building command (after separating by delimiter), use {0}, {1}, ... to specify placement (implies --format)")
+                        help="use regex capturing groups on each input item with re.search(regex, input).groups() before building command (after separating by delimiter), use {0}, {1}, ... to specify placement (implies --format), it is also stored as a tuple in the variable s")
     parser.add_argument("--format", action="store_true", dest="format_str",
                         help="format command with input using str.format() instead of appending or replacing via -I replace-str, use {0}, {1}, ... to specify placement, if the command is then evaluated as an f-string (--fstring) escape using double curly braces as {{expr}} to evaluate expressions")
     parser.add_argument("-I", action="store", type=str, default=None, metavar="replace-str", dest="replace_str",
@@ -338,7 +338,7 @@ def main() -> int:
     parser.add_argument("-f", "--fstring", action="store_true", dest="fstring",
                         help="evaluates commands as python f-strings before execution")
     parser.add_argument("--df", action="store_true", dest="dataframe",
-                        help="reads each input into a dataframe and stores in variable df, requires pandas")
+                        help="reads each input into a dataframe and stores it in variable df, requires pandas")
     parser.add_argument("--max-chars", type=int, metavar="n", dest="max_chars",
                         help="omits any command line exceeding n characters, no limit by default")
     group1.add_argument("--sh", "--shell", action="store_true", dest="subprocess_shell",
