@@ -227,6 +227,7 @@ def execute_command(args: argparse.Namespace, command_dict: dict, user_namespace
     else:
         s = x.split()
     if args.dataframe:
+        global df
         if args.input_mode == "stdin":
             df = pd.read_table(io.StringIO(x), sep=None, engine="python")
         else:
