@@ -19,6 +19,9 @@ setuptools.setup(
             "pyxr = pyxargs:main"
         ]
     },
+    extra_requires={
+        "pandas": ["pandas"],
+    },
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",

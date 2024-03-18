@@ -79,6 +79,8 @@ options:
                         execution
   --df                  reads each input into a dataframe and stores it in
                         variable df, requires pandas
+  --js                  reads each input as a json object and stores it in
+                        variable js
   --max-chars n         omits any command line exceeding n characters, no
                         limit by default
   --sh, --shell         executes commands through the shell (subprocess
