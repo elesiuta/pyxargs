@@ -268,15 +268,18 @@ def execute_command(args: argparse.Namespace, command_dict: dict, user_namespace
                     db = x
         else:
             try:
-                db = duckdb.read_json(x)
+                db = duckdb.connect(x)
             except Exception:
                 try:
-                    db = duckdb.read_parquet(x)
+                    db = duckdb.read_json(x)
                 except Exception:
                     try:
-                        db = duckdb.read_csv(x)
+                        db = duckdb.read_parquet(x)
                     except Exception:
-                        db = x
+                        try:
+                            db = duckdb.read_csv(x)
+                        except Exception:
+                            db = x
     # return early if dry run (still safe to do after setting variables, and tests if any fail, but probably still want to do this before evaluating f-strings)
     if args.dry_run:
         colour_print(cmd, "0")
