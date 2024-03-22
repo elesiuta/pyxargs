@@ -250,21 +250,19 @@ def execute_command(args: argparse.Namespace, command_dict: dict, user_namespace
         if args.dataframe:
             db = duckdb.from_df(df)
         elif args.json:
-            tf = tempfile.NamedTemporaryFile(mode="w+")
-            json.dump(js, tf)
-            tf.seek(0)
-            db = duckdb.read_json(tf.name)
-            tf.close()
+            with tempfile.NamedTemporaryFile(mode="w+") as tf:
+                json.dump(js, tf)
+                tf.seek(0)
+                db = duckdb.read_json(tf.name)
         elif args.input_mode == "stdin":
             try:
                 db = duckdb.read_csv(io.StringIO(x))
             except Exception:
                 try:
-                    tf = tempfile.NamedTemporaryFile(mode="w+")
-                    tf.write(x)
-                    tf.seek(0)
-                    db = duckdb.read_json(tf.name)
-                    tf.close()
+                    with tempfile.NamedTemporaryFile(mode="w+") as tf:
+                        tf.write(x)
+                        tf.seek(0)
+                        db = duckdb.read_json(tf.name)
                 except Exception:
                     try:
                         db = duckdb.from_query(x)
