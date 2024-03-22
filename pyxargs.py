@@ -181,8 +181,9 @@ def execute_commands(args: argparse.Namespace, command_dicts: list) -> int:
         global pd
         import pandas as pd
     if args.sql:
-        global duckdb
+        global duckdb, conn
         import duckdb
+        conn = duckdb.connect(":default:")
     for lib in args.imprt:
         exec(f"import {lib}", globals(), user_namespace)
     for lib in args.imprtstar:
@@ -247,7 +248,7 @@ def execute_command(args: argparse.Namespace, command_dict: dict, user_namespace
             with open(x, "r") as fd:
                 js = json.load(fd)
     if args.sql:
-        global db
+        global db, conn
         if args.dataframe:
             db = duckdb.from_df(df)
         elif args.json:
@@ -268,8 +269,9 @@ def execute_command(args: argparse.Namespace, command_dict: dict, user_namespace
                     db = x
         else:
             try:
-                db = duckdb.connect(x)
+                conn = duckdb.connect(x, read_only=True)
             except Exception:
+                conn = duckdb.connect(":default:")
                 try:
                     db = duckdb.read_json(x)
                 except Exception:
@@ -315,7 +317,7 @@ def execute_command(args: argparse.Namespace, command_dict: dict, user_namespace
         print(cmd[0])
     elif args.sql:
         try:
-            result = duckdb.sql(cmd[0])
+            result = conn.sql(cmd[0])
             out.append(result)
             print(result)
         except Exception as err:
