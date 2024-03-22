@@ -265,10 +265,7 @@ def execute_command(args: argparse.Namespace, command_dict: dict, user_namespace
                 try:
                     db = duckdb.read_csv(io.StringIO(x))
                 except Exception:
-                    try:
-                        db = duckdb.from_query(x)
-                    except Exception:
-                        db = x
+                    db = x
         else:
             try:
                 db = duckdb.connect(x)
