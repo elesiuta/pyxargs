@@ -2,9 +2,10 @@
 
 This started as a simple solution to the [encoding problem with xargs](https://en.wikipedia.org/wiki/Xargs#Encoding_problem). It is a partial and opinionated implementation of xargs with the goal of being easier to use for most use cases.  
 
-It also contains additional features for AWK-like data processing, such as taking python code as arguments to be executed, or filtering with regular expressions.  
+It also contains additional features for AWK-like data processing, such as taking python code as arguments to be executed, or filtering with regular expressions. Some of these features take inspiration from [pyp](https://github.com/hauntsaninja/pyp/), [Pyed Piper](https://github.com/thepyedpiper/pyp), and [Pyped](https://github.com/ksamuel/Pyped/). A great comparison of them is provided by [pyp](https://github.com/hauntsaninja/pyp?tab=readme-ov-file#related-projects), which mainly differs from pyxargs in that pyxargs has more of an xargs-like interface and built in file tree traversal (replacing the need for find), but lacks the AST introspection and manipulation of pyp which infers more from the command without passing flags.  
 
-You can install [pyxargs](https://github.com/elesiuta/pyxargs/) from [PyPI](https://pypi.org/project/pyxargs/).  
+You can install [pyxargs](https://github.com/elesiuta/pyxargs/) from [PyPI](https://pypi.org/project/pyxargs/). Optionally depends on [duckdb](https://pypi.org/project/duckdb/) and [pandas](https://pypi.org/project/pandas/).  
+
 ## Command Line Interface
 ```
 usage: pyxr [options] command [initial-arguments ...]
@@ -90,7 +91,7 @@ options:
                         then prints the result
   -p, --pypr            evaluates commands as python f-strings then prints
                         them (implies --fstring)
-  --sql                 reads each input into variable db then runs commands
+  -q, --sql             reads each input into variable db then runs commands
                         as SQL queries using duckdb.sql(), requires duckdb
   --import library      executes 'import <library>' for each library
   --im library, --importstar library
@@ -142,6 +143,20 @@ options:
 
 # given variables are only in the global scope, so they won't overwrite locals
   > pyxr --pre "i=1;j=2;n=5;x=3;a=3;" -p "i={i} j={j} n={n} x={x} a={l}"
+
+# you can also use dataframes as df with --df (requires pandas)
+  > echo A,B,C\n1,2,3\n4,5,6 | pyxr -0 --df -p "{df}"
+
+# or query sql databases as db with -q (requires duckdb)
+  > echo A,B,C\n1,2,3\n4,5,6 | pyxr -0 -q "SELECT * FROM db"
+  > echo '{"a": 1,"b": 2}' | pyxr -0 -q "SELECT * FROM db"
+
+# it can also read from databases, csv files, etc. (see duckdb extensions)
+  > pyxr -t -r .sqlite -q "SELECT * FROM <table>"
+  > pyxr -t -r .sqlite -f -q "SELECT * FROM {db[0]}"
+  > pyxr -t -r .csv -q "SELECT * FROM db"
+  > pyxr -t -q "SELECT * FROM db"
+  > pyxr -t -q "SELECT * FROM '{}'"
 
 # regular expressions can be used to filter and modify inputs
   > pyxr -r \.py --resub \.py .txt {new} echo {} -\> {new}

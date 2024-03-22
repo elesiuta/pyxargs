@@ -34,7 +34,7 @@ import time
 import typing
 
 
-__version__: typing.Final[str] = "3.4.2"
+__version__: typing.Final[str] = "3.4.3"
 
 
 def replace_surrogates(string: str) -> str:
@@ -404,7 +404,7 @@ def main() -> int:
                         help="evaluates commands as python expressions using eval() then prints the result")
     group1.add_argument("-p", "--pypr", action="store_true", dest="pyprt",
                         help="evaluates commands as python f-strings then prints them (implies --fstring)")
-    group1.add_argument("--sql", action="store_true", dest="sql",
+    group1.add_argument("-q", "--sql", action="store_true", dest="sql",
                         help="reads each input into variable db then runs commands as SQL queries using duckdb.sql(), requires duckdb")
     parser.add_argument("--import", action="append", type=str, default=[], metavar=("library"), dest="imprt",
                         help="executes 'import <library>' for each library")
