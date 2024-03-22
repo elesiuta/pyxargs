@@ -34,7 +34,7 @@ import time
 import typing
 
 
-__version__: typing.Final[str] = "3.4.1"
+__version__: typing.Final[str] = "3.4.2"
 
 
 def replace_surrogates(string: str) -> str:
@@ -221,7 +221,7 @@ def execute_command(args: argparse.Namespace, command_dict: dict, user_namespace
     cmd = command_dict["cmd"]
     if args.input_mode == "file":
         os.chdir(dir_path)
-    # update variables available to the user
+    # update variables always available to the user
     global i, j, n, a, out, d, x, s
     i, j = i + 1, j - 1
     d = command_dict["dir"]
@@ -234,6 +234,7 @@ def execute_command(args: argparse.Namespace, command_dict: dict, user_namespace
         s = os.path.splitext(x)
     else:
         s = x.split()
+    # update variables only available when flag specified
     if args.dataframe:
         global df
         if args.input_mode == "stdin":
@@ -251,11 +252,6 @@ def execute_command(args: argparse.Namespace, command_dict: dict, user_namespace
         global db, conn
         if args.dataframe:
             db = duckdb.from_df(df)
-        elif args.json:
-            tf = tempfile.NamedTemporaryFile(mode="w+")
-            json.dump(js, tf)
-            tf.file.flush()
-            db = duckdb.read_json(tf.name)
         elif args.input_mode == "stdin":
             try:
                 tf = tempfile.NamedTemporaryFile(mode="w+")
@@ -263,13 +259,11 @@ def execute_command(args: argparse.Namespace, command_dict: dict, user_namespace
                 tf.file.flush()
                 db = duckdb.read_json(tf.name)
             except Exception:
-                try:
-                    db = duckdb.read_csv(io.StringIO(x))
-                except Exception:
-                    db = x
+                db = duckdb.read_csv(io.StringIO(x))
         else:
             try:
                 conn = duckdb.connect(x, read_only=True)
+                db = [row[0] for row in conn.sql("SHOW TABLES;").fetchall()]
             except Exception:
                 conn = duckdb.connect(":default:")
                 try:
@@ -281,7 +275,7 @@ def execute_command(args: argparse.Namespace, command_dict: dict, user_namespace
                         try:
                             db = duckdb.read_csv(x)
                         except Exception:
-                            db = x
+                            db = Exception(r"Could not read file, try replace-str '{}' or f-string '{x}' to pass the file path, or check duckdb extensions")
     # return early if dry run (still safe to do after setting variables, and tests if any fail, but probably still want to do this before evaluating f-strings)
     if args.dry_run:
         colour_print(cmd, "0")
