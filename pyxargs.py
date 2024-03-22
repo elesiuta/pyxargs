@@ -243,8 +243,8 @@ def execute_command(args: argparse.Namespace, command_dict: dict, user_namespace
         if args.input_mode == "stdin":
             js = json.loads(x)
         else:
-            with open(x, "r") as f:
-                js = json.load(f)
+            with open(x, "r") as fd:
+                js = json.load(fd)
     if args.sql:
         global db
         if args.dataframe:
@@ -295,9 +295,9 @@ def execute_command(args: argparse.Namespace, command_dict: dict, user_namespace
     if args.fstring:
         # evaluate f-strings
         try:
-            cmd = [eval(f"f\"{c}\"", globals(), user_namespace) for c in cmd]
-        except Exception as e:
-            print(str(e), file=sys.stderr)
+            cmd = [eval(f"f\"{part}\"", globals(), user_namespace) for part in cmd]
+        except Exception as err:
+            print(str(err), file=sys.stderr)
             return
         # print verbose again after evaluation, pyprt already prints at this stage
         if args.verbose and not args.pyprt:
@@ -306,22 +306,22 @@ def execute_command(args: argparse.Namespace, command_dict: dict, user_namespace
     if args.pyex:
         try:
             exec(cmd[0], globals(), user_namespace)
-        except Exception as e:
-            print(str(e), file=sys.stderr)
+        except Exception as err:
+            print(str(err), file=sys.stderr)
     elif args.pyev:
         try:
             result = eval(cmd[0], globals(), user_namespace)
             print(result)
-        except Exception as e:
-            print(str(e), file=sys.stderr)
+        except Exception as err:
+            print(str(err), file=sys.stderr)
     elif args.pyprt:
         print(cmd[0])
     elif args.sql:
         try:
             result = duckdb.sql(cmd[0])
             print(result)
-        except Exception as e:
-            print(str(e), file=sys.stderr)
+        except Exception as err:
+            print(str(err), file=sys.stderr)
     elif args.subprocess_shell:
         subprocess.run(cmd[0], shell=True)
     else:
@@ -443,8 +443,8 @@ def main() -> int:
     if args.command_pickle is not None:
         args.input_mode = args.command_pickle[0]
     elif args.arg_file is not None and (args.input_mode is None or args.input_mode == "stdin"):
-        with open(args.arg_file, "r") as f:
-            stdin = f.read()
+        with open(args.arg_file, "r") as fd:
+            stdin = fd.read()
         args.input_mode = "stdin"
     elif args.input_mode is None:
         if not sys.stdin.isatty():
@@ -502,8 +502,8 @@ def main() -> int:
         if args.command_pickle is None:
             command_dicts = build_commands(args, stdin)
         else:
-            with open(args.command_pickle[1], "rb") as f:
-                command_dicts = pickle.load(f)
+            with open(args.command_pickle[1], "rb") as fd:
+                command_dicts = pickle.load(fd)
         # start subprocesses with multiplexer if requested then exit
         if args.procs is not None and args.chunk is None and not args.no_mux:
             multiplexer = "byobu" if shutil.which("byobu") else "tmux" if shutil.which("tmux") else None
