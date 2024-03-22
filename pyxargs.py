@@ -167,11 +167,12 @@ def execute_commands(args: argparse.Namespace, command_dicts: list) -> int:
     if args.procs is not None:
         all_inputs = ["ERROR: var not available with --procs"] * len(command_dicts)
     # loop variables available to the user
-    global i, j, n, a
+    global i, j, n, a, out
     i = -1
     n = len(command_dicts)
     j = n
     a = all_inputs
+    out = []
     # pre execution tasks (add system packages in case of pipx or venv, safe to add duplicate or non-existent paths)
     site.addsitedir("/usr/lib/python3/dist-packages")
     site.addsitedir(os.path.expanduser(f"~/.local/lib/python{sys.version_info.major}.{sys.version_info.minor}/site-packages"))
@@ -220,7 +221,7 @@ def execute_command(args: argparse.Namespace, command_dict: dict, user_namespace
     if args.input_mode == "file":
         os.chdir(dir_path)
     # update variables available to the user
-    global i, j, n, a, d, x, s
+    global i, j, n, a, out, d, x, s
     i, j = i + 1, j - 1
     d = command_dict["dir"]
     x = command_dict["input"]
@@ -300,6 +301,7 @@ def execute_command(args: argparse.Namespace, command_dict: dict, user_namespace
     elif args.pyev:
         try:
             result = eval(cmd[0], globals(), user_namespace)
+            out.append(result)
             print(result)
         except Exception as err:
             print(str(err), file=sys.stderr)
@@ -308,6 +310,7 @@ def execute_command(args: argparse.Namespace, command_dict: dict, user_namespace
     elif args.sql:
         try:
             result = duckdb.sql(cmd[0])
+            out.append(result)
             print(result)
         except Exception as err:
             print(str(err), file=sys.stderr)
