@@ -34,7 +34,7 @@ import time
 import typing
 
 
-__version__: typing.Final[str] = "3.3.1"
+__version__: typing.Final[str] = "3.3.2"
 
 
 def replace_surrogates(string: str) -> str:
@@ -63,7 +63,7 @@ def colour_print(cmd: list, colour: str) -> None:
 
 def build_commands(args: argparse.Namespace, stdin: str) -> list:
     command_dicts = [{"all_inputs": []}]
-    append_input = not (args.pyex or args.pyev or args.pyprt or args.resub or args.format_str or args.fstring) and (args.replace_str is None) and all("{}" not in arg for arg in args.command)
+    append_input = not (args.pyex or args.pyev or args.pyprt or args.sql or args.resub or args.format_str or args.fstring) and (args.replace_str is None) and all("{}" not in arg for arg in args.command)
     args.replace_str = "{}" if args.replace_str is None else args.replace_str
     # build commands using standard input mode or by walking the directory tree
     if args.input_mode == "stdin":
@@ -154,8 +154,8 @@ def build_command(args: argparse.Namespace, dir_path: str, basename: str, arg_in
     if len(command) > 1:
         if args.subprocess_shell:
             command = [shlex.join(command)]
-        elif args.pyex or args.pyev or args.pyprt:
-            command = [" ".join(command)]        
+        elif args.pyex or args.pyev or args.pyprt or args.sql:
+            command = [" ".join(command)]
     return command, arg_input, arg_input_split
 
 
@@ -179,6 +179,9 @@ def execute_commands(args: argparse.Namespace, command_dicts: list) -> int:
     if args.dataframe:
         global pd
         import pandas as pd
+    if args.sql:
+        global duckdb
+        import duckdb
     for lib in args.imprt:
         exec(f"import {lib}", globals(), user_namespace)
     for lib in args.imprtstar:
@@ -242,6 +245,45 @@ def execute_command(args: argparse.Namespace, command_dict: dict, user_namespace
         else:
             with open(x, "r") as f:
                 js = json.load(f)
+    if args.sql:
+        global db
+        if args.dataframe:
+            db = duckdb.from_df(df)
+        elif args.json:
+            tf = tempfile.NamedTemporaryFile(mode="w+")
+            json.dump(js, tf)
+            tf.seek(0)
+            db = duckdb.read_json(tf.name)
+            tf.close()
+        elif args.input_mode == "stdin":
+            try:
+                db = duckdb.read_csv(io.StringIO(x))
+            except Exception:
+                try:
+                    tf = tempfile.NamedTemporaryFile(mode="w+")
+                    tf.write(x)
+                    tf.seek(0)
+                    db = duckdb.read_json(tf.name)
+                    tf.close()
+                except Exception:
+                    try:
+                        db = duckdb.from_query(x)
+                    except Exception:
+                        db = x
+        else:
+            try:
+                db = duckdb.read_csv(x)
+            except Exception:
+                try:
+                    db = duckdb.read_json(x)
+                except Exception:
+                    try:
+                        db = duckdb.read_parquet(x)
+                    except Exception:
+                        try:
+                            db = duckdb.connect(x)
+                        except Exception:
+                            db = x
     # return early if dry run (still safe to do after setting variables, and tests if any fail, but probably still want to do this before evaluating f-strings)
     if args.dry_run:
         colour_print(cmd, "0")
@@ -274,6 +316,12 @@ def execute_command(args: argparse.Namespace, command_dict: dict, user_namespace
             print(str(e), file=sys.stderr)
     elif args.pyprt:
         print(cmd[0])
+    elif args.sql:
+        try:
+            result = duckdb.sql(cmd[0])
+            print(result)
+        except Exception as e:
+            print(str(e), file=sys.stderr)
     elif args.subprocess_shell:
         subprocess.run(cmd[0], shell=True)
     else:
@@ -362,6 +410,8 @@ def main() -> int:
                         help="evaluates commands as python expressions using eval() then prints the result")
     group1.add_argument("-p", "--pypr", action="store_true", dest="pyprt",
                         help="evaluates commands as python f-strings then prints them (implies --fstring)")
+    group1.add_argument("--sql", action="store_true", dest="sql",
+                        help="reads each input into variable db and runs commands as SQL queries using duckdb.sql(), requires duckdb")
     parser.add_argument("--import", action="append", type=str, default=[], metavar=("library"), dest="imprt",
                         help="executes 'import <library>' for each library")
     parser.add_argument("--im", "--importstar", action="append", type=str, default=[], metavar=("library"), dest="imprtstar",

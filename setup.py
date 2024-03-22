@@ -20,6 +20,8 @@ setuptools.setup(
         ]
     },
     extra_requires={
+        "all": ["duckdb", "pandas"],
+        "duckdb": ["duckdb"],
         "pandas": ["pandas"],
     },
     classifiers=[
