@@ -90,6 +90,8 @@ options:
                         then prints the result
   -p, --pypr            evaluates commands as python f-strings then prints
                         them (implies --fstring)
+  --sql                 reads each input into variable db then runs commands
+                        as SQL queries using duckdb.sql(), requires duckdb
   --import library      executes 'import <library>' for each library
   --im library, --importstar library
                         executes 'from <library> import *' for each library

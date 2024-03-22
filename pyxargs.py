@@ -409,7 +409,7 @@ def main() -> int:
     group1.add_argument("-p", "--pypr", action="store_true", dest="pyprt",
                         help="evaluates commands as python f-strings then prints them (implies --fstring)")
     group1.add_argument("--sql", action="store_true", dest="sql",
-                        help="reads each input into variable db and runs commands as SQL queries using duckdb.sql(), requires duckdb")
+                        help="reads each input into variable db then runs commands as SQL queries using duckdb.sql(), requires duckdb")
     parser.add_argument("--import", action="append", type=str, default=[], metavar=("library"), dest="imprt",
                         help="executes 'import <library>' for each library")
     parser.add_argument("--im", "--importstar", action="append", type=str, default=[], metavar=("library"), dest="imprtstar",
