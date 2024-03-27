@@ -2,9 +2,9 @@
 
 This started as a simple solution to the [encoding problem with xargs](https://en.wikipedia.org/wiki/Xargs#Encoding_problem). It is a partial and opinionated implementation of xargs with the goal of being easier to use for most use cases.  
 
-It also contains additional features for AWK-like data processing, such as taking python code as arguments to be executed, or filtering with regular expressions. Some of these features take inspiration from [pyp](https://github.com/hauntsaninja/pyp/), [Pyed Piper](https://github.com/thepyedpiper/pyp), and [Pyped](https://github.com/ksamuel/Pyped/). A great comparison of them is provided by [pyp](https://github.com/hauntsaninja/pyp?tab=readme-ov-file#related-projects), which mainly differs from pyxargs in that pyxargs has more of an xargs-like interface and built in file tree traversal (replacing the need for find), but lacks the AST introspection and manipulation of pyp which infers more from the command without passing flags.  
+It also contains additional features for AWK-like data processing, such as taking python code as arguments to be executed, or filtering with regular expressions. Some of these features take inspiration from [pyp](https://github.com/hauntsaninja/pyp), [Pyed Piper](https://github.com/thepyedpiper/pyp), and [Pyped](https://github.com/ksamuel/Pyped). A great comparison of them is provided by [pyp](https://github.com/hauntsaninja/pyp?tab=readme-ov-file#related-projects), which mainly differs from pyxargs in that pyxargs has more of an xargs-like interface and built in file tree traversal (replacing the need for find), but lacks the AST introspection and manipulation of pyp which infers more from the command without passing flags.  
 
-You can install [pyxargs](https://github.com/elesiuta/pyxargs/) from [PyPI](https://pypi.org/project/pyxargs/). Optionally depends on [duckdb](https://pypi.org/project/duckdb/) and [pandas](https://pypi.org/project/pandas/).  
+You can install [pyxargs](https://github.com/elesiuta/pyxargs) from [PyPI](https://pypi.org/project/pyxargs/). Optionally depends on [duckdb](https://pypi.org/project/duckdb/) and [pandas](https://pypi.org/project/pandas/).  
 
 ## Command Line Interface
 ```
@@ -85,7 +85,8 @@ options:
   --max-chars n         omits any command line exceeding n characters, no
                         limit by default
   --sh, --shell         executes commands through the shell (subprocess
-                        shell=True) (no effect on Windows)
+                        shell=True) (warning, shlex.quote is not guaranteed to
+                        be correct on Windows)
   -x, --pyex            executes commands as python code using exec()
   -e, --pyev            evaluates commands as python expressions using eval()
                         then prints the result
@@ -136,7 +137,14 @@ options:
 # you can also evaluate and print python f-strings, the index i is provided
   > pyxr --pypr "number: {i}\tname: {}"
 
-# other variables: j=remaining, n=total, x=input, d=dir, a[i]=x, s=x.split()
+# provided variables: i=index, j=remaining, n=total, x=input, d=dir
+# a is a list of all previous inputs, so a[i]=x
+# out is a list of all previous outputs, so out[i]=output (for -e, -p, -q)
+# s is like a list of columns if each x is a row, by default s=x.split()
+# if the input mode is path or abspath, s=x.split(os.path.sep)
+# if the input mode is file, s=os.path.splitext(x)
+# if -s or -g is specified, then it is re.split() or re.search().groups()
+# other variables are provided with flags: --df, --js, --sql
   > pyxr -p "i={i}\tj={j}\tn={n}\tx={x}\td={d}\ta[{i}]={a[i]}={a[-j]}\ts={s}"
   > pyxr -p "prev: {'START' if i<1 else a[i-1]}\t" \
                "current: {a[i]}\tnext: {'END' if j<1 else a[i+1]}"

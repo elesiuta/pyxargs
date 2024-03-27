@@ -21,7 +21,6 @@ import json
 import multiprocessing
 import os
 import pickle
-import pty
 import re
 import shlex
 import shutil
@@ -34,7 +33,7 @@ import time
 import typing
 
 
-__version__: typing.Final[str] = "3.4.3"
+__version__: typing.Final[str] = "3.4.4"
 
 
 def replace_surrogates(string: str) -> str:
@@ -152,10 +151,10 @@ def build_command(args: argparse.Namespace, dir_path: str, basename: str, arg_in
             return [], "", []
     # join command if required, shlex required for shell, extra escaped quotes can be problematic for python
     if len(command) > 1:
-        if args.subprocess_shell:
-            command = [shlex.join(command)]
-        elif args.pyex or args.pyev or args.pyprt or args.sql:
+        if args.pyex or args.pyev or args.pyprt or args.sql:
             command = [" ".join(command)]
+        elif args.subprocess_shell:
+            command = [shlex.join(command)]
     return command, arg_input, arg_input_split
 
 
@@ -308,6 +307,7 @@ def execute_command(args: argparse.Namespace, command_dict: dict, user_namespace
         except Exception as err:
             print(str(err), file=sys.stderr)
     elif args.pyprt:
+        out.append(cmd[0])
         print(cmd[0])
     elif args.sql:
         try:
@@ -333,7 +333,7 @@ def main() -> int:
     readme = ("Build and execute command lines, python code, or mix from standard input or file paths. "
               "The file input mode (default if stdin is not connected) builds commands using filenames only and executes them in their respective directories, "
               "this is useful when dealing with file paths containing multiple character encodings.")
-    parser = argparse.ArgumentParser(description=readme,
+    parser = argparse.ArgumentParser(description=readme, epilog="Source code: https://github.com/elesiuta/pyxargs",
                                      formatter_class=lambda prog: ArgparseCustomFormatter(prog, max_help_position=24),
                                      usage="%(prog)s [options] command [initial-arguments ...]\n"
                                            "       %(prog)s -h | --help | --version")
@@ -397,7 +397,7 @@ def main() -> int:
     parser.add_argument("--max-chars", type=int, metavar="n", dest="max_chars",
                         help="omits any command line exceeding n characters, no limit by default")
     group1.add_argument("--sh", "--shell", action="store_true", dest="subprocess_shell",
-                        help="executes commands through the shell (subprocess shell=True) (no effect on Windows)")
+                        help="executes commands through the shell (subprocess shell=True) (warning, shlex.quote is not guaranteed to be correct on Windows)")
     group1.add_argument("-x", "--pyex", action="store_true", dest="pyex",
                         help="executes commands as python code using exec()")
     group1.add_argument("-e", "--pyev", action="store_true", dest="pyev",
@@ -462,9 +462,12 @@ def main() -> int:
     # enable f-string mode
     if args.pyprt:
         args.fstring = True
-    # enable shell on windows
+    # check for unsupported options on windows and prepend cmd.exe /c to commands that don't start with an executable (too annoying to check which shell was used on windows)
     if sys.platform.startswith("win32"):
-        args.subprocess_shell = True
+        if not (args.subprocess_shell or args.pyex or args.pyev or args.pyprt or args.sql):
+            if len(args.command) >= 1 and not shutil.which(args.command[0]):
+                args.command = ["cmd.exe", "/c"] + args.command
+        assert args.procs is None or args.no_mux, "multiplexer not supported on Windows"
     # check for invalid arguments
     if sys.flags.optimize > 0:
         print("Error: -O (optimize) flag not supported", file=sys.stderr)
@@ -512,10 +515,11 @@ def main() -> int:
             subprocess.run([multiplexer, "new-session", "-d", "-s", session, shlex.join(pyxargs_command)])
             # create new window for each process, and set chunk number for each
             for proc_i in range(1, args.procs):
-                pyxargs_command[3] = str(i)
+                pyxargs_command[3] = str(proc_i)
                 subprocess.run([multiplexer, "new-window", "-t", f"{session}:{proc_i}", shlex.join(pyxargs_command)])
             # attach tty to fix input for interactive mode with mux if data piped to stdin (even if data wasn't read)
             if not sys.stdin.isatty():
+                import pty
                 sys.stdin = sys.__stdin__ = open("/dev/tty")
                 os.dup2(sys.stdin.fileno(), 0)
                 pty.spawn([multiplexer, "attach-session", "-t", session])
