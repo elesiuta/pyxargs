@@ -34,7 +34,7 @@ import time
 import typing
 
 
-__version__: typing.Final[str] = "3.4.4"
+__version__: typing.Final[str] = "3.4.5"
 
 
 def replace_surrogates(string: str) -> str:
