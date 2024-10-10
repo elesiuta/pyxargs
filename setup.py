@@ -20,7 +20,9 @@ setuptools.setup(
         ]
     },
     extra_requires={
-        "all": ["duckdb", "pandas"],
+        "all": ["argcomplete", "duckdb", "pandas"],
+        "full": ["argcomplete", "duckdb", "pandas"],
+        "argcomplete": ["argcomplete"],
         "duckdb": ["duckdb"],
         "pandas": ["pandas"],
     },

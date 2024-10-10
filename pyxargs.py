@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# PYTHON_ARGCOMPLETE_OK
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -428,6 +429,11 @@ def main() -> int:
                         help="prints commands without executing them")
     parser.add_argument("-v", "--verbose", action="store_true", dest="verbose",
                         help="prints commands before executing them")
+    try:
+        import argcomplete
+        argcomplete.autocomplete(parser)
+    except Exception:
+        pass
     args = parser.parse_args()
     # determine input mode and read stdin available or required
     stdin = ""

@@ -4,7 +4,7 @@ This started as a simple solution to the [encoding problem with xargs](https://e
 
 It also contains additional features for AWK-like data processing, such as taking python code as arguments to be executed, or filtering with regular expressions. Some of these features take inspiration from [pyp](https://github.com/hauntsaninja/pyp), [Pyed Piper](https://github.com/thepyedpiper/pyp), and [Pyped](https://github.com/ksamuel/Pyped). A great comparison of them is provided by [pyp](https://github.com/hauntsaninja/pyp?tab=readme-ov-file#related-projects), which mainly differs from pyxargs in that pyxargs has more of an xargs-like interface and built in file tree traversal (replacing the need for find), but lacks the AST introspection and manipulation of pyp which infers more from the command without passing flags.  
 
-You can install [pyxargs](https://github.com/elesiuta/pyxargs) from [PyPI](https://pypi.org/project/pyxargs/). Optionally depends on [duckdb](https://pypi.org/project/duckdb/) and [pandas](https://pypi.org/project/pandas/).  
+You can install [pyxargs](https://github.com/elesiuta/pyxargs) from [PyPI](https://pypi.org/project/pyxargs/). Optionally depends on [duckdb](https://pypi.org/project/duckdb/) and [pandas](https://pypi.org/project/pandas/). Supports tab completion with [argcomplete](https://pypi.org/project/argcomplete/).  
 
 ## Command Line Interface
 ```
@@ -125,7 +125,7 @@ options:
 # python code can be used in place of a command
   > pyxr --pyex "print(f'input file: {} executed in: {os.getcwd()}')"
 
-# a shorter version of this command with --pypr and the magic variable d
+# a shorter version of this command with --pypr (-p) and the magic variable d
   > pyxr -p "input file: {} executed in: {d}"
 
 # python f-strings can also be used to format regular commands
@@ -155,7 +155,7 @@ options:
 # you can also use dataframes as df with --df (requires pandas)
   > echo A,B,C\n1,2,3\n4,5,6 | pyxr -0 --df -p "{df}"
 
-# or query sql databases as db with -q (requires duckdb)
+# or query sql databases as db with --sql (-q) (requires duckdb)
   > echo A,B,C\n1,2,3\n4,5,6 | pyxr -0 -q "SELECT * FROM db"
   > echo '{"a": 1,"b": 2}' | pyxr -0 -q "SELECT * FROM db"
 
@@ -177,11 +177,11 @@ options:
 
 # you can use pyxargs to create a JSON mapping of /etc/hosts
   > cat /etc/hosts | pyxr -d \n --im json --pre "d={}" \
-    --post "print(dumps(d))" --py "d['{}'.split()[0]] = '{}'.split()[1]"
+    --post "print(dumps(d))" -x "d['{}'.split()[0]] = '{}'.split()[1]"
 
 # you can also do this with format strings and --split (-s) (uses regex)
   > cat /etc/hosts | pyxr -d \n -s "\s+" --im json --pre "d={}" \
-    --post "print(dumps(d))" --py "d['{0}'] = '{1}'"
+    --post "print(dumps(d))" -x "d['{0}'] = '{1}'"
 
 # use double curly braces to escape for f-strings since str.format() is first
   > cat /etc/hosts | pyxr -d \n -s "\s+" -p "{{i}}:{{'{1}'.upper()}}"
