@@ -34,7 +34,7 @@ import time
 import typing
 
 
-__version__: typing.Final[str] = "3.4.5"
+__version__: typing.Final[str] = "3.4.6"
 
 
 def replace_surrogates(string: str) -> str:
@@ -333,8 +333,9 @@ def main() -> int:
             return argparse.HelpFormatter._split_lines(self, text, width)
     readme = ("Build and execute command lines, python code, or mix from standard input or file paths. "
               "The file input mode (default if stdin is not connected) builds commands using filenames only and executes them in their respective directories, "
-              "this is useful when dealing with file paths containing multiple character encodings.")
-    parser = argparse.ArgumentParser(description=readme, epilog="Source code: https://github.com/elesiuta/pyxargs",
+              "this is useful when dealing with file paths containing multiple character encodings. "
+              "When executing python code, the following variables are provided: i=index, j=remaining, n=total, x=input, s=split, d=dir, a=all_inputs, out=previous_results, df=dataframe, js=json, db=duckdb")
+    parser = argparse.ArgumentParser(description=readme, epilog="Source: https://github.com/elesiuta/pyxargs",
                                      formatter_class=lambda prog: ArgparseCustomFormatter(prog, max_help_position=24),
                                      usage="%(prog)s [options] command [initial-arguments ...]\n"
                                            "       %(prog)s -h | --help | --version")
@@ -346,18 +347,18 @@ def main() -> int:
     parser.add_argument("--version", action="version", version=__version__)
     parser.add_argument("--base-directory", type=str, default=os.getcwd(), metavar="base-directory", dest="base_dir",
                         help=argparse.SUPPRESS)
-    parser.add_argument("-m", type=str, default=None, metavar="input-mode", choices=['file', 'path', 'abspath', 'stdin', "f", "p", "a", "s"], dest="input_mode",
+    parser.add_argument("-m", "--mode", type=str, default=None, metavar="input-mode", choices=['file', 'path', 'abspath', 'stdin', "f", "p", "a", "s"], dest="input_mode",
                         help="F!\n"
                              "options are:\n"
-                             "file    = build commands from filenames and execute in\n"
-                             "          each subdirectory respectively\n"
-                             "path    = build commands from file paths relative to\n"
-                             "          the current directory and execute in the\n"
-                             "          current directory\n"
-                             "abspath = build commands from absolute file paths and \n"
-                             "          execute in the current directory\n"
-                             "stdin   = build commands from standard input and\n"
-                             "          execute in the current directory\n"
+                             "(f)ile    = build commands from filenames and execute\n"
+                             "            in each subdirectory respectively\n"
+                             "(p)ath    = build commands from file paths relative\n"
+                             "            to the current directory and execute in\n"
+                             "            the current directory\n"
+                             "(a)bspath = build commands from absolute file paths\n"
+                             "            and execute in the current directory\n"
+                             "(s)tdin   = build commands from standard input and\n"
+                             "            execute in the current directory\n"
                              "default: stdin if connected, otherwise file")
     group2.add_argument("--folders", action="store_true", dest="folders",
                         help="use folders instead files (for input modes: file, path, abspath)")
@@ -383,11 +384,11 @@ def main() -> int:
                         help="replace occurrences of replace-str in command with input, default: {}")
     parser.add_argument("--resub", nargs=3, type=str, metavar=("pattern", "substitution", "replace-str"), dest="resub",
                         help="replace occurrences of replace-str in command with re.sub(patten, substitution, input)")
-    parser.add_argument("-r", type=str, default=None, metavar="regex", dest="regex_filter",
+    parser.add_argument("-r", "--filter", type=str, default=None, metavar="regex", dest="regex_filter",
                         help="only build commands from inputs matching regex for input mode stdin, and matching relative paths for all other input modes, uses re.search")
-    parser.add_argument("-o", action="store_true", dest="regex_omit",
+    parser.add_argument("-o", "--omit", action="store_true", dest="regex_omit",
                         help="omit inputs matching regex instead")
-    parser.add_argument("-b", action="store_true", dest="regex_basename",
+    parser.add_argument("-b", "--basename", action="store_true", dest="regex_basename",
                         help="only match regex against basename of input (for input modes: file, path, abspath)")
     parser.add_argument("-f", "--fstring", action="store_true", dest="fstring",
                         help="evaluates commands as python f-strings before execution")

@@ -15,21 +15,24 @@ Build and execute command lines, python code, or mix from standard input or
 file paths. The file input mode (default if stdin is not connected) builds
 commands using filenames only and executes them in their respective
 directories, this is useful when dealing with file paths containing multiple
-character encodings.
+character encodings. When executing python code, the following variables are
+provided: i=index, j=remaining, n=total, x=input, s=split, d=dir,
+a=all_inputs, out=previous_results, df=dataframe, js=json, db=duckdb
 
 options:
   -h, --help            show this help message and exit
   --version             show program's version number and exit
-  -m input-mode         options are:
-                        file    = build commands from filenames and execute in
-                                  each subdirectory respectively
-                        path    = build commands from file paths relative to
-                                  the current directory and execute in the
-                                  current directory
-                        abspath = build commands from absolute file paths and 
-                                  execute in the current directory
-                        stdin   = build commands from standard input and
-                                  execute in the current directory
+  -m input-mode, --mode input-mode
+                        options are:
+                        (f)ile    = build commands from filenames and execute
+                                    in each subdirectory respectively
+                        (p)ath    = build commands from file paths relative
+                                    to the current directory and execute in
+                                    the current directory
+                        (a)bspath = build commands from absolute file paths
+                                    and execute in the current directory
+                        (s)tdin   = build commands from standard input and
+                                    execute in the current directory
                         default: stdin if connected, otherwise file
   --folders             use folders instead files (for input modes: file,
                         path, abspath)
@@ -70,11 +73,12 @@ options:
   --resub pattern substitution replace-str
                         replace occurrences of replace-str in command with
                         re.sub(patten, substitution, input)
-  -r regex              only build commands from inputs matching regex for
+  -r regex, --filter regex
+                        only build commands from inputs matching regex for
                         input mode stdin, and matching relative paths for all
                         other input modes, uses re.search
-  -o                    omit inputs matching regex instead
-  -b                    only match regex against basename of input (for input
+  -o, --omit            omit inputs matching regex instead
+  -b, --basename        only match regex against basename of input (for input
                         modes: file, path, abspath)
   -f, --fstring         evaluates commands as python f-strings before
                         execution
@@ -137,10 +141,11 @@ options:
 # you can also evaluate and print python f-strings, the index i is provided
   > pyxr --pypr "number: {i}\tname: {}"
 
-# provided variables: i=index, j=remaining, n=total, x=input, d=dir
-# a is a list of all previous inputs, so a[i]=x
-# out is a list of all previous outputs, so out[i]=output (for -e, -p, -q)
-# s is like a list of columns if each x is a row, by default s=x.split()
+# provided variables:
+# i = index, j = remaining, n = total, x = input, d = dir
+# a = a list of all inputs, so a[i]=x
+# out = a list of previous outputs, so out[i]=output (for -e, -p, -q)
+# s = a list of columns if each x is a row, by default s=x.split()
 # if the input mode is path or abspath, s=x.split(os.path.sep)
 # if the input mode is file, s=os.path.splitext(x)
 # if -s or -g is specified, then it is re.split() or re.search().groups()
